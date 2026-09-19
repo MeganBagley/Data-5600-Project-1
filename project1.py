@@ -10,7 +10,7 @@ rng = np.random.default_rng(42)
 
 # Specify a function to simulate data
 # predictors: snow making (in), # of days open last year, # of runs at the resort, avg snow fall(in)
-def sim_data(n, beta_0, beta_snow_making, beta_days_open_last, beta_runs, beta_avgsnow, beta_sigma):
+def sim_data(n, beta_0, beta_snow_making, beta_days_open_last, beta_runs, beta_avgsnow, sigma):
     
     snow_making = rng.normal(300, 200, size=n)  # based on average snow making in inches in US resorts
     days_open_last = rng.normal(130, 20, size=n)  # based on average days open in ski resorts in 2018 season
