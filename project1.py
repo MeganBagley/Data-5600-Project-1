@@ -47,3 +47,9 @@ df = pd.DataFrame({
 
 print (df.head())
 
+#model fitting 
+fr_fit = smf.ols ( 
+    "sentiment ~ 1 + snow_making + days_open_last + runs + avgsnow", data = df).fit()
+
+#Display regression results 
+print(fr_fit.summary())
