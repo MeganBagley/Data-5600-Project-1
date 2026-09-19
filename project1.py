@@ -18,7 +18,7 @@ def sim_data(n, beta_0, beta_snow_making, beta_days_open_last, beta_runs, beta_a
     avgsnow = rng.normal(400, 150, size=n)  #  based on the average snowfall
     error = rng.normal(0, sigma, size=n) 
     sentiment = beta_0 + beta_snow_making * snow_making + beta_days_open_last * days_open_last + beta_runs * runs + beta_avgsnow * avgsnow + error
-    return snow_making, days_open_last, runs, avgsnow, error
+    return sentiment, now_making, days_open_last, runs, avgsnow, error
 
 sentiment, snow_making, days_open_last, runs, avgsnow, error = sim_data(
     n=200, beta_0=500, snow_making=290, days_open_last=140,
