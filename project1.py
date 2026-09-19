@@ -29,6 +29,10 @@ def sim_data(n, beta_0, beta_snow_making, beta_days_open_last, beta_runs, beta_a
     )
     sentiment = np.clip(np.round(sentiment_latent), 1, 7)  # 7-point scale
 )
+sentiment, snow_making, runs, avgsnow, error = sim_data(
+    n=200, beta_0=500, beta_promotion=0.3, beta_competitor_pricing=6,
+    beta_discount=-0.3, beta_price=5, sigma=1
+)
 
 # create dataframe for storage
 df = pd.DataFrame({
