@@ -37,11 +37,10 @@ sentiment, snow_making, runs, avgsnow, error = sim_data(
 # create dataframe for storage
 df = pd.DataFrame({
    "sentiment": sentiment,
-    "snow_making": sales,
-    "days_open_last": price,
-    "runs": discount,
-    "avgsnow": promotion,
-    "": competitor_pricing,
+    "snow_making": snow_making,
+    "days_open_last": days_open_last,
+    "runs": runs,
+    "avgsnow": avgsnow,
     "error": error
 })
 
