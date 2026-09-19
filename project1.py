@@ -4,6 +4,7 @@ import pandas as pd
 import statsmodels.formula.api as smf
 import bambi as bmb
 import arviz as az
+import polars as pl
 
 # Set randomization seed
 rng = np.random.default_rng(42)
@@ -12,10 +13,10 @@ rng = np.random.default_rng(42)
 # predictors: snow making (in), # of days open last year, # of runs at the resort, avg snow fall(in)
 def sim_data(n, beta_0, beta_snow_making, beta_days_open_last, beta_runs, beta_avgsnow, sigma):
     
-    snow_making = rng.normal(300, 200, size=n).clip(min=0) # based on average inches in US resorts
-    days_open_last = rng.normal(130, 20, size=n).clip(min=0) # based on average days open 2018 season in US resorts
-    runs = rng.normal(70, 20, size=n).clip(min=1) # based on average runs in US resorts
-    avgsnow = rng.normal(400, 150, size=n).clip(min=0) # based on average snowfall in inches in US resorts
+    snow_making = rng.normal(2, 700, size=n).clip(min=0)
+    days_open_last = rng.normal(45, 165, size=n).clip(min=0)
+    runs = rng.normal(13, 336, size=n).clip(min=1)
+    avgsnow = rng.normal(18, 550, size=n).clip(min=0)
     error = rng.normal(0, sigma, size=n)
 
     sentiment_latent = ( #creating the sentiment function
@@ -44,4 +45,5 @@ df = pd.DataFrame({
     "error": error
 })
 
-df.head()
+print (df.head())
+
