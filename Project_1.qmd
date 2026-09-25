@@ -80,3 +80,18 @@ snow_data = pl.read_excel(
 snow_data.head()
 ```
 
+```{python}
+#see data types of the columns 
+snow_data.describe()
+```
+
+```{python}
+#see rows and columns 
+snow_data.shape
+```
+
+```{python}
+#see the nulls and nan values 
+snow_data.null_count()
+```
+
