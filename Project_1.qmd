@@ -74,7 +74,7 @@ print(fr_fit.summary())
 import data file
 ```{python}
 snow_data = pl.read_excel(
-    here('Data-5600-Project-1\OnTheSnow_v1.xlsx')
+    here('OnTheSnow_v1.xlsx')
 )
 
 snow_data.head()
