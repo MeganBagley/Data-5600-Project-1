@@ -30,7 +30,7 @@ def sim_data(n, beta_0, beta_snow_making, beta_days_open_last, beta_runs, beta_a
     snow_making = rng.normal(2, 700, size=n).clip(min=0)
     days_open_last = rng.normal(45, 165, size=n).clip(min=0)
     runs = rng.normal(13, 195, size=n).clip(min=1)
-    avgsnow = rng.normal(18, 500, size=n).clip(min=0)
+    avgsnow = rng.normal(175, 136, size=n).clip(min=0)
     error = rng.normal(0, sigma, size=n)
 
     sentiment_latent = ( #creating the sentiment function
@@ -92,7 +92,7 @@ snow_data.shape
 ```
 
 ```{python}
-#see the nulls and nan values 
+#see the nulls count 
 snow_data.null_count()
 ```
 
@@ -115,8 +115,6 @@ snow_data.shape #again see rows and columns
 
 ```{python}
 #once the linear relation between snow fall and sentiment is established, we compare the simulated snow fall with real data 
-
-
 # Compare the simulated and real outcomes to check validity 
 (ggplot()
   + geom_density(
