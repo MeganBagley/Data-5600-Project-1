@@ -30,7 +30,7 @@ def sim_data(n, beta_0, beta_snow_making, beta_days_open_last, beta_runs, beta_a
     snow_making = rng.normal(2, 700, size=n).clip(min=0)
     days_open_last = rng.normal(45, 165, size=n).clip(min=0)
     runs = rng.normal(13, 195, size=n).clip(min=1)
-    avgsnow = rng.normal(165, 136, size=n).clip(min=0)
+    avgsnow = rng.normal(175, 136, size=n).clip(min=0)
     error = rng.normal(0, sigma, size=n)
 
     sentiment_latent = ( #creating the sentiment function
@@ -124,6 +124,60 @@ snow_data.shape #again see rows and columns
   + geom_density(
     snow_data, 
     aes(x = 'averageSnowfall')
+  )
+)
+```
+
+INDEPENDENCE
+```{python}
+(ggplot(
+    snow_data, 
+    aes(x = 'observation', y = 'residuals_01')
+  )
+  + geom_line(alpha = 0.5)
+  + geom_hline(yintercept = 0, color = 'red')
+  + labs(
+    title = 
+      'Independence: Sequential Residuals',
+    subtitle = 
+      'Look for a trend in mean or variance'
+  )
+)
+```
+
+CONSTANT VARIANCE
+```{python}
+(ggplot(
+    snow_data, 
+    aes(
+      x = 'residuals_01', 
+      y = 'fitted_values_01'
+    )
+  )
+  + geom_point(alpha = 0.25, color = 'red')
+  + labs(
+    title = 
+      'Constant Variance: Residuals vs. Fitted Values',
+    subtitle = 
+      'Look for a funnel shape in the residuals'
+  )
+)
+```
+
+NORMALITY
+```{python}
+(ggplot(
+    snow_data, 
+    aes(sample = 'residuals_01')
+  )
+  + stat_qq(alpha = 0.25)
+  + stat_qq_line(color = 'red')
+  + labs(
+    title = 'Normality: Q-Q Plot',
+    subtitle = 
+      'Points should follow the diagonal',
+    x = 'Theoretical Quantiles',
+    y = 'Sample Quantiles'
   )
 )
 ```
