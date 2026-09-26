@@ -30,7 +30,7 @@ def sim_data(n, beta_0, beta_snow_making, beta_days_open_last, beta_runs, beta_a
     snow_making = rng.normal(2, 700, size=n).clip(min=0)
     days_open_last = rng.normal(45, 165, size=n).clip(min=0)
     runs = rng.normal(13, 195, size=n).clip(min=1)
-    avgsnow = rng.normal(175, 136, size=n).clip(min=0)
+    avgsnow = rng.normal(165, 136, size=n).clip(min=0)
     error = rng.normal(0, sigma, size=n)
 
     sentiment_latent = ( #creating the sentiment function
