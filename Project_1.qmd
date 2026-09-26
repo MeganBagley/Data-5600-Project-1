@@ -15,6 +15,7 @@ import bambi as bmb
 import arviz as az
 import polars as pl
 from pyprojroot.here import here
+from plotnine import *
 ```
 
 data simulation
@@ -28,8 +29,8 @@ def sim_data(n, beta_0, beta_snow_making, beta_days_open_last, beta_runs, beta_a
     
     snow_making = rng.normal(2, 700, size=n).clip(min=0)
     days_open_last = rng.normal(45, 165, size=n).clip(min=0)
-    runs = rng.normal(13, 336, size=n).clip(min=1)
-    avgsnow = rng.normal(18, 550, size=n).clip(min=0)
+    runs = rng.normal(13, 195, size=n).clip(min=1)
+    avgsnow = rng.normal(18, 500, size=n).clip(min=0)
     error = rng.normal(0, sigma, size=n)
 
     sentiment_latent = ( #creating the sentiment function
@@ -44,7 +45,7 @@ def sim_data(n, beta_0, beta_snow_making, beta_days_open_last, beta_runs, beta_a
     return sentiment, snow_making, days_open_last, runs, avgsnow, error
 
 sentiment, snow_making, days_open_last, runs, avgsnow, error = sim_data( # run coefficients based on simulation estimates
-    n=200, beta_0=-1.0, beta_snow_making=0.002, beta_days_open_last=0.02,
+    n=240, beta_0=-1.0, beta_snow_making=0.002, beta_days_open_last=0.02,
     beta_runs=0.015, beta_avgsnow=0.002, sigma=0.8
 )
 
@@ -81,12 +82,12 @@ snow_data.head()
 ```
 
 ```{python}
-#see data types of the columns 
+#see data types of the columns for actual data 
 snow_data.describe()
 ```
 
 ```{python}
-#see rows and columns 
+#see rows and columns for actual data 
 snow_data.shape
 ```
 
@@ -95,3 +96,18 @@ snow_data.shape
 snow_data.null_count()
 ```
 
+```{python}
+
+#print(type(snow_data)) #check if its polars dataframe 
+snow_data=snow_data.drop_nulls(['Snow Making','daysOpenLastYear','Runs','averageSnowfall']) #drop null values 
+snow_data.shape #see rows and columns 
+snow_data=snow_data.drop_nans(['Snow Making','daysOpenLastYear','Runs','averageSnowfall']) #drop Nan
+snow_data.shape #again see rows and columns 
+```
+
+
+```{python}
+#Scatterplot of sentiment and runs
+
+(ggplot(snow_data, aes(x = 'sentiment', y = 'averageSnowfall')) + geom_jitter(size = 2, color = 'blue', alpha = 0.15, width = 0.25, height = 0.25) + geom_smooth(method = 'lm', color = 'maroon', se = False))
+```
