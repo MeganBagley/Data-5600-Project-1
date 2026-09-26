@@ -111,3 +111,21 @@ snow_data.shape #again see rows and columns
 
 (ggplot(snow_data, aes(x = 'sentiment', y = 'averageSnowfall')) + geom_jitter(size = 2, color = 'blue', alpha = 0.15, width = 0.25, height = 0.25) + geom_smooth(method = 'lm', color = 'maroon', se = False))
 ```
+
+
+```{python}
+#once the linear relation between snow fall and sentiment is established, we compare the simulated snow fall with real data 
+
+
+# Compare the simulated and real outcomes to check validity 
+(ggplot()
+  + geom_density(
+    aes(x = 'avgsnow'), 
+    color = 'red'
+  )
+  + geom_density(
+    snow_data, 
+    aes(x = 'averageSnowfall')
+  )
+)
+```
