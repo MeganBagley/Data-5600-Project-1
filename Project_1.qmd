@@ -66,7 +66,7 @@ sim data model fitting
 ```{python}
 #model fitting 
 fr_fit = smf.ols ( 
-    "sentiment ~ 1 + snow_making + days_open_last + runs + avgsnow", data = df).fit()
+    "sentiment ~ 1 + snow_making + days_open_last + runs + avgsnow + state", data = df).fit()
 
 #Display regression results 
 print(fr_fit.summary())
@@ -77,7 +77,7 @@ import data file
 snow_data = pl.read_excel(
     here('OnTheSnow_v1.xlsx')
 )
-
+snow_data=snow_data.select(['Name','city','state','Snow Making','daysOpenLastYear','Runs','averageSnowfall'])
 snow_data.head()
 ```
 
@@ -126,4 +126,113 @@ snow_data.shape #again see rows and columns
     aes(x = 'averageSnowfall')
   )
 )
+```
+
+```{python}
+# check for representativeness 
+snow_data_train = snow_data.to_dummies(columns=['state'], drop_first = False).select(pl.exclude(['state_Nevada','state_New England','state_NorthernCalifornia','state_Oregon','state_SierraNevada','state_SierraNevada','state_SouthernCalifornia','state_Utah']))
+```
+
+
+```{python}
+#fit the model 
+# Get all state dummy columns
+state_cols = [col for col in snow_data_train.columns if col.startswith('state_')]
+
+# formula for our model 
+formula = 'sentiment ~ 1 + Q("Snow Making") + daysOpenLastYear + Runs + averageSnowfall + ' + ' + '.join([f'Q("{col}")' for col in state_cols])
+
+# fit model 
+fit_01 = smf.ols(formula, data=snow_data_train).fit()
+print(fit_01.summary())
+```
+
+
+```{python}
+# Save the dffits values
+snow_data_train = (snow_data_train
+  .with_columns(dffits = fit_01.get_influence().dffits[0])
+  .with_columns(abs_dffits = pl.col('dffits').abs())
+  .with_row_index('observation02')
+)
+```
+
+
+```{python}
+
+# independence
+
+(ggplot(
+        snow_data_train,
+        aes(x = 'observations', y = 'residuals')
+      )
+      + geom_line(alpha = 0.5)
+      + geom_hline(yintercept = 0, color = 'red')
+      + labs(
+        title =
+          'Independence: Sequential Residuals',
+        subtitle =
+          'Look for a trend in mean or variance'
+      )
+    )
+```
+
+
+```{python}
+# constant variance
+(ggplot(
+        snow_data_train,
+        aes(
+          x = 'residuals_01',
+          y = 'fitted_values_01'
+        )
+      )
+      + geom_point(alpha = 0.25, color = 'red')
+      + labs(
+        title =
+          'Constant Variance: Residuals vs. Fitted Values',
+        subtitle =
+          'Look for a funnel shape in the residuals'
+      )
+    )
+```
+
+
+```{python}
+# Normality
+(ggplot(
+        snow_data_train,
+        aes(sample = 'residuals_01')
+      )
+      + stat_qq(alpha = 0.25)
+      + stat_qq_line(color = 'red')
+      + labs(
+        title = 'Normality: Q-Q Plot',
+        subtitle =
+          'Points should follow the diagonal',
+        x = 'Theoretical Quantiles',
+        y = 'Sample Quantiles'
+      )
+    )
+```
+
+
+```{python}
+# Identifiability
+from statsmodels.stats.outliers_influence import variance_inflation_factor
+
+predictors = [
+      'log_price', 'brand_Jif', 'brand_Skippy',
+      'brand_PeterPan', 'texture_Smooth', 'size_12'
+    ]
+
+X_train = snow_data.select(predictors)
+
+pl.DataFrame({
+      'predictor': predictors,
+      'VIF': [
+        variance_inflation_factor(X_train, i)
+        for i in range(X_train.shape[1])
+      ]
+    })
 ```
