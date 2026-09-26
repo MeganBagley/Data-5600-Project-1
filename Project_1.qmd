@@ -181,3 +181,23 @@ NORMALITY
   )
 )
 ```
+
+IDENTIFIABILITY
+```{python}
+from statsmodels.stats.outliers_influence import variance_inflation_factor
+
+predictors = [
+  'log_price', 'brand_Jif', 'brand_Skippy', 
+  'brand_PeterPan', 'texture_Smooth', 'size_12'
+]
+
+X_train = pb_train.select(predictors)
+
+pl.DataFrame({
+  'predictor': predictors,
+  'VIF': [
+    variance_inflation_factor(X_train, i)
+    for i in range(X_train.shape[1])
+  ]
+}).sort('VIF', descending = True)
+```
