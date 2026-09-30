@@ -1,0 +1,171 @@
+---
+title: "project_1.1"
+format: html
+engine: jupyter
+jupyter: python3
+---
+
+import libraries
+```{python}
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+import statsmodels.formula.api as smf
+import bambi as bmb
+import arviz as az
+import polars as pl
+from pyprojroot.here import here
+from plotnine import *
+```
+
+import data file
+```{python}
+snow_data = pl.read_excel(
+    here('Data-5600-Project-1/OnTheSnow_v1.xlsx')
+)
+snow_data=snow_data.select(['city','Snow Making','daysOpenLastYear','Runs','averageSnowfall','sentiment'])
+
+#create a region 
+snow_data = snow_data.with_columns(
+    pl.when(
+        pl.col("city").is_in([
+            "Utah", "Idaho", "Montana", "Wyoming", "Colorado",
+            "New Mexico", "Arizona", "Nevada", "Sierra Nevada",
+            "Salt Lake City"
+        ])
+    ).then(pl.lit("Mountain"))
+
+    .when(
+        pl.col("city").is_in([
+            "Washington", "Oregon", "Alaska", "Mt. Hood"
+        ])
+    ).then(pl.lit("West"))
+
+    .when(
+        pl.col("city").is_in([
+            "Minnesota", "Wisconsin", "Michigan", "Illinois",
+            "Indiana", "Ohio", "Iowa", "South Dakota", "Missouri"
+        ])
+    ).then(pl.lit("Midwest"))
+
+    .when(
+        pl.col("city").is_in([
+            "New York", "Pennsylvania", "New Jersey", "Connecticut",
+            "Massachusetts", "Vermont", "New Hampshire", "Maine",
+            "Maryland", "Virginia", "West Virginia",
+            "North Carolina"
+        ])
+    ).then(pl.lit("East"))
+
+    .otherwise(pl.lit("Other"))
+    .alias("region")
+)
+
+#drop city column
+snow_data = snow_data.drop("city")
+
+#drop nulls and nans
+snow_data = snow_data.drop_nulls(['Snow Making','daysOpenLastYear','Runs','averageSnowfall']) 
+snow_data = snow_data.drop_nans(['Snow Making','daysOpenLastYear','Runs','averageSnowfall']) 
+
+snow_data.head()
+snow_data["region"].value_counts().sort("count")
+```
+
+```{python}
+# Dummy code discrete predictors- use east as reference case becuase it has the most entries
+snow_train = (snow_data
+.to_dummies(columns = ['region'], drop_first = False)
+.select(pl.exclude('region_East'))
+)
+
+# fit a model
+fit_01 = smf.ols(
+    "sentiment ~ 1 + snow_making + days_open_last + runs + avgsnow + region_Midwest + region_Mountain + region_Other + region_West",
+    data = snow_train
+).fit()
+
+#save residuals
+snow_train = (snow_train
+  .with_columns(residuals_01 = pl.Series(fit_01.resid))
+  .with_columns(fitted_values_01 = pl.Series(fit_01.fittedvalues))
+  .with_row_index('observation')
+)
+```
+
+LINEARITY:
+```{python}
+(ggplot(
+    snow_train, 
+    aes(
+      x = 'residuals_01', 
+      y = 'fitted_values_01'
+    )
+  )
+  + geom_point(alpha = 0.25)
+  + geom_smooth(
+    method = 'lowess', 
+    color = 'red'
+  )
+  + labs(
+    title = 
+      'Linearity: Residuals vs. Fitted Values',
+    subtitle = 
+      'Look for a roughly horizontal line'
+  )
+)
+```
+
+INDEPENDENCE:
+```{python}
+(ggplot(
+    snow_train, 
+    aes(x = 'observation', y = 'residuals_01')
+  )
+  + geom_line(alpha = 0.5)
+  + geom_hline(yintercept = 0, color = 'red')
+  + labs(
+    title = 
+      'Independence: Sequential Residuals',
+    subtitle = 
+      'Look for a trend in mean or variance'
+  )
+)
+```
+
+CONSTANT VARIANCE:
+```{python}
+(ggplot(
+    snow_train, 
+    aes(
+      x = 'residuals_01', 
+      y = 'fitted_values_01'
+    )
+  )
+  + geom_point(alpha = 0.25, color = 'red')
+  + labs(
+    title = 
+      'Constant Variance: Residuals vs. Fitted Values',
+    subtitle = 
+      'Look for a funnel shape in the residuals'
+  )
+)
+```
+
+NORMALITY:
+```{python}
+(ggplot(
+    snow_train, 
+    aes(sample = 'residuals_01')
+  )
+  + stat_qq(alpha = 0.25)
+  + stat_qq_line(color = 'red')
+  + labs(
+    title = 'Normality: Q-Q Plot',
+    subtitle = 
+      'Points should follow the diagonal',
+    x = 'Theoretical Quantiles',
+    y = 'Sample Quantiles'
+  )
+)
+```
