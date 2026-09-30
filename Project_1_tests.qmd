@@ -5,6 +5,7 @@ engine: jupyter
 jupyter: python3
 ---
 
+*project setup*
 import libraries
 ```{python}
 import numpy as np
@@ -74,6 +75,7 @@ snow_data.head()
 snow_data["region"].value_counts().sort("count")
 ```
 
+fit OLS and collect residuals
 ```{python}
 # Dummy code discrete predictors- use east as reference case becuase it has the most entries
 snow_train = (snow_data
@@ -95,6 +97,7 @@ snow_train = (snow_train
 )
 ```
 
+*exercise_7: exploring residuals*
 LINEARITY:
 ```{python}
 (ggplot(
@@ -172,7 +175,7 @@ NORMALITY:
 )
 ```
 
-*EXERCISE 8: Training Split*
+*exercise_8: training splits*
 ```{python}
 # Specify the design matrix and outcome
 X = snow_train.select(pl.exclude('sentiment'))
