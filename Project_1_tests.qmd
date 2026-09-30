@@ -11,11 +11,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import statsmodels.formula.api as smf
+import statsmodels.api as sm
 import bambi as bmb
 import arviz as az
 import polars as pl
 from pyprojroot.here import here
 from plotnine import *
+from sklearn.model_selection import train_test_split
 ```
 
 import data file
@@ -169,3 +171,58 @@ NORMALITY:
   )
 )
 ```
+
+*EXERCISE 8: Training Split*
+```{python}
+# Specify the design matrix and outcome
+X = snow_train.select(pl.exclude('sentiment'))
+y = snow_train.select('sentiment')
+
+# Split into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2, random_state = 42)
+```
+
+```{python}
+snow_train["sentiment"].describe()
+snow_train["sentiment"].value_counts().sort("sentiment")
+```
+
+log transformation and quick viz- notice the shape of the data. Do we need a log transform?
+```{python}
+y_train = (y_train
+  .with_columns(
+    log_sentiment = (pl.col('sentiment') + 1).log()
+  )
+  .select('log_sentiment')
+)
+
+(ggplot(y_train, aes(x = 'log_sentiment'))
+  + geom_histogram(bins = 10)
+)
+
+# Add constant for intercept
+X_train = sm.add_constant(X_train)
+
+# Fit the model
+fit_04 = sm.OLS(y_train, X_train).fit()
+fit_04.summary()
+
+# retrieve untransformed params
+coef_table = pl.DataFrame({
+    "parameter": fit_04.params.index,
+    "log_coef": fit_04.params.values,
+    "p_value": fit_04.pvalues.values
+})
+
+coef_table = (
+    coef_table
+    .with_columns(
+        ((pl.col("log_coef").exp() - 1) * 100)
+        .alias("percent_change")
+    )
+    .filter(pl.col("parameter") != "const")
+)
+
+coef_table
+```
+
