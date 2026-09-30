@@ -175,6 +175,34 @@ NORMALITY:
 )
 ```
 
+MULTICOLINEARITY / IDENTIFIABILITY:
+```{python}
+from statsmodels.stats.outliers_influence import variance_inflation_factor
+
+snow_train.columns
+predictors = [
+  'Snow Making',
+ 'daysOpenLastYear',
+ 'Runs',
+ 'averageSnowfall',
+ 'sentiment',
+ 'region_Midwest',
+ 'region_Mountain',
+ 'region_Other',
+ 'region_West',
+]
+
+X_train = snow_train.select(predictors)
+
+pl.DataFrame({
+  'predictor': predictors,
+  'VIF': [
+    variance_inflation_factor(X_train, i)
+    for i in range(X_train.shape[1])
+  ]
+}).sort('VIF', descending = True)
+```
+
 *exercise_8: training splits*
 ```{python}
 # Specify the design matrix and outcome
