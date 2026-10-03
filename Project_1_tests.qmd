@@ -185,7 +185,6 @@ predictors = [
  'daysOpenLastYear',
  'Runs',
  'averageSnowfall',
- 'sentiment',
  'region_Midwest',
  'region_Mountain',
  'region_Other',
