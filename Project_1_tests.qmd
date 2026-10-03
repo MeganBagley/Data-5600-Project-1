@@ -302,6 +302,7 @@ fit_05 = sm.OLS(y_train.to_pandas(), X_train).fit()
 fit_05.summary()
 
 ```
+
 ```{python}
 pl.DataFrame({
   'term': fit_05.params.index.tolist(),
@@ -318,7 +319,7 @@ snow_train = pl.concat([y_train, pl.from_pandas(X_train.drop(columns = 'const'))
 
 predictors = ['daysOpenLastYear', 'Runs', 'averageSnowfall', 'log_snow_making']
 
-fr_fit = sm.ols(
+fr_fit = smf.ols(
   'Sentiment ~ ' + ' + '.join(predictors),
   data = snow_train
 ).fit()
@@ -326,6 +327,7 @@ fr_fit = sm.ols(
 fr_fit.summary()
 
 ```
+
 Bayesian Model
 
 ```{python}
