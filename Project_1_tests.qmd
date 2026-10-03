@@ -24,9 +24,9 @@ from sklearn.model_selection import train_test_split
 import data file
 ```{python}
 snow_data = pl.read_excel(
-    here('OnTheSnow_v1.xlsx')
+    here('D:\CoursesUSU\Final_Semester\Intro_Reg_ML\DATA5600\data-5600\Project1\Data-5600-Project-1\OnTheSnow_v1.xlsx')
 )
-snow_data=snow_data.select(['city','Snow Making','daysOpenLastYear','Runs','averageSnowfall','sentiment'])
+snow_data=snow_data.select(['city','Snow Making','daysOpenLastYear','Runs','averageSnowfall', 'Sentiment'])
 
 #create a region 
 snow_data = snow_data.with_columns(
@@ -68,8 +68,8 @@ snow_data = snow_data.with_columns(
 snow_data = snow_data.drop("city")
 
 #drop nulls and nans
-snow_data = snow_data.drop_nulls(['Snow Making','daysOpenLastYear','Runs','averageSnowfall']) 
-snow_data = snow_data.drop_nans(['Snow Making','daysOpenLastYear','Runs','averageSnowfall']) 
+snow_data = snow_data.drop_nulls(['Snow Making','daysOpenLastYear','Runs','averageSnowfall', 'Sentiment']) 
+snow_data = snow_data.drop_nans(['Snow Making','daysOpenLastYear','Runs','averageSnowfall','Sentiment']) 
 
 snow_data.head()
 snow_data["region"].value_counts().sort("count")
@@ -185,7 +185,6 @@ predictors = [
  'daysOpenLastYear',
  'Runs',
  'averageSnowfall',
- 'sentiment',
  'region_Midwest',
  'region_Mountain',
  'region_Other',
@@ -206,23 +205,23 @@ pl.DataFrame({
 *exercise_8: training splits*
 ```{python}
 # Specify the design matrix and outcome
-X = snow_train.select(pl.exclude('sentiment'))
-y = snow_train.select('sentiment')
+X = snow_train.select(pl.exclude('Sentiment'))
+y = snow_train.select('Sentiment')
 
 # Split into training and testing sets
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2, random_state = 42)
 ```
 
 ```{python}
-snow_train["sentiment"].describe()
-snow_train["sentiment"].value_counts().sort("sentiment")
+snow_train["Sentiment"].describe()
+snow_train["Sentiment"].value_counts().sort("Sentiment")
 ```
 
 log transformation and quick viz- notice the shape of the data. Do we need a log transform?
 ```{python}
 y_train = (y_train
   .with_columns(
-    log_sentiment = (pl.col('sentiment') + 1).log()
+    log_sentiment = (pl.col('Sentiment') + 1).log()
   )
   .select('log_sentiment')
 )
