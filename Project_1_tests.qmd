@@ -68,8 +68,8 @@ snow_data = snow_data.with_columns(
 snow_data = snow_data.drop("city")
 
 #drop nulls and nans
-snow_data = snow_data.drop_nulls(['Snow Making','daysOpenLastYear','Runs','averageSnowfall']) 
-snow_data = snow_data.drop_nans(['Snow Making','daysOpenLastYear','Runs','averageSnowfall']) 
+snow_data = snow_data.drop_nulls(['Snow Making','daysOpenLastYear','Runs','averageSnowfall','OnTheSnow_Star_Rating']) 
+snow_data = snow_data.drop_nans(['Snow Making','daysOpenLastYear','Runs','averageSnowfall','OnTheSnow_Star_Rating']) 
 
 snow_data.head()
 snow_data["region"].value_counts().sort("count")
