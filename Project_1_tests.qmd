@@ -24,7 +24,7 @@ from sklearn.model_selection import train_test_split
 import data file
 ```{python}
 snow_data = pl.read_excel(
-    here('Data-5600-Project-1/OnTheSnow_v1.xlsx')
+    here('OnTheSnow_v1.xlsx')
 )
 snow_data=snow_data.select(['city','Snow Making','daysOpenLastYear','Runs','averageSnowfall','sentiment'])
 
