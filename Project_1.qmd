@@ -66,7 +66,7 @@ sim data model fitting
 ```{python}
 #model fitting 
 fr_fit = smf.ols ( 
-    "sentiment ~ 1 + snow_making + days_open_last + runs + avgsnow + state", data = df).fit()
+    "sentiment ~ 1 + snow_making + days_open_last + runs + avgsnow", data = df).fit()
 
 #Display regression results 
 print(fr_fit.summary())
@@ -75,7 +75,7 @@ print(fr_fit.summary())
 import data file
 ```{python}
 snow_data = pl.read_excel(
-    here('OnTheSnow_v1.xlsx').rename({'OnTheSnow_7pt_Rating': 'Sentiment'})
+    here('OnTheSnow_v1.xlsx')
 )
 snow_data=snow_data.select(['Name','city','state','Snow Making','daysOpenLastYear','Runs','averageSnowfall'])
 snow_data.head()
@@ -130,7 +130,7 @@ snow_data.shape #again see rows and columns
 
 ```{python}
 # check for representativeness 
-snow_data_train = snow_data.to_dummies(columns=['state'], drop_first = False).select(pl.exclude(['state_Nevada','state_New England','state_NorthernCalifornia','state_Oregon','state_SierraNevada','state_SierraNevada','state_SouthernCalifornia','state_Utah']))
+snow_data_train = snow_data.to_dummies(columns=['state'], drop_first = False).select(pl.exclude(['state_Nevada','state_New England','state_Northern California','state_Oregon','state_Sierra Nevada','state_SierraNevada','state_Southern California','state_Utah']))
 ```
 
 
@@ -153,10 +153,35 @@ print(fit_01.summary())
 snow_data_train = (snow_data_train
   .with_columns(dffits = fit_01.get_influence().dffits[0])
   .with_columns(abs_dffits = pl.col('dffits').abs())
-  .with_row_index('observation02')
+  .with_row_index('observations')
+)
+
+n, p = len(snow_data_train), len(fit_01.params)
+dffits_cutoff = 1 if n <= 30 else 2 * np.sqrt(p / n)
+
+(ggplot(snow_data_train, aes(x = 'observations', y = 'abs_dffits'))
+  + geom_point(alpha=0.25)
+  + geom_hline(yintercept = dffits_cutoff, color = 'red')
+  + labs(
+    title = 'Representativeness: DFFITS',
+    subtitle = 'Potentially influential above red line',
+    x = 'Observations',
+    y = 'Absolute Value of DFFITS'
+  )
+  + theme_minimal()
+)
+
+# print(len([col for col in snow_data_train.columns if col.startswith('state_')]))
+# print(len(snow_data_train))
+# print([col for col in snow_data_train.columns if col.startswith('state_')])
+
+# Save the residuals and fitted values
+snow_data_train = (snow_data_train
+  .with_columns(residuals_02 = pl.Series(fit_01.resid))
+  .with_columns(fitted_values_02 = pl.Series(fit_01.fittedvalues))
+  .with_row_index('observations')
 )
 ```
-
 
 ```{python}
 
@@ -270,10 +295,10 @@ X_test = (X_test
 )
 
 X_train.head()
+
 ```
 
-Initial Model
-
+Initial model 
 ```{python}
 # Add constant for intercept
 X_train = sm.add_constant(X_train)
@@ -281,8 +306,8 @@ X_train = sm.add_constant(X_train)
 # Fit the model
 fit_05 = sm.OLS(y_train.to_pandas(), X_train).fit()
 fit_05.summary()
-```
 
+```
 ```{python}
 pl.DataFrame({
   'term': fit_05.params.index.tolist(),
@@ -305,8 +330,8 @@ fr_fit = sm.ols(
 ).fit()
 
 fr_fit.summary()
-```
 
+```
 Bayesian Model
 
 ```{python}
