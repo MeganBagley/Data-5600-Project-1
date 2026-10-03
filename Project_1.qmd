@@ -75,7 +75,7 @@ print(fr_fit.summary())
 import data file
 ```{python}
 snow_data = pl.read_excel(
-    here('OnTheSnow_v1.xlsx')
+    here('OnTheSnow_v1.xlsx').rename({'OnTheSnow_7pt_Rating': 'Sentiment'})
 )
 snow_data=snow_data.select(['Name','city','state','Snow Making','daysOpenLastYear','Runs','averageSnowfall'])
 snow_data.head()
@@ -235,4 +235,103 @@ pl.DataFrame({
         for i in range(X_train.shape[1])
       ]
     })
+```
+
+```{python}
+# Keep only the outcome and our four resort-attribute predictors
+snow_ols = snow_data.select('Sentiment', 'Snow Making', 'daysOpenLastYear', 'Runs', 'averageSnowfall')
+
+snow_ols.head()
+```
+
+```{python}
+# Specify the outcome
+X = snow_ols.select(pl.exclude('Sentiment'))
+y = snow_ols.select('Sentiment')
+
+# Split into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(
+  X, y, test_size = 0.2, random_state = 42
+)
+```
+
+```{python}
+# Snow Making is heavily right-skewed, log transformed to normalize
+X_train = (X_train
+  .with_columns((pl.col('Snow Making') + 1).log().alias('log_snow_making'))
+  .select(pl.exclude('Snow Making'))
+  .to_pandas()
+)
+
+X_test = (X_test
+  .with_columns((pl.col('Snow Making') + 1).log().alias('log_snow_making'))
+  .select(pl.exclude('Snow Making'))
+  .to_pandas()
+)
+
+X_train.head()
+```
+
+Initial Model
+
+```{python}
+# Add constant for intercept
+X_train = sm.add_constant(X_train)
+
+# Fit the model
+fit_05 = sm.OLS(y_train.to_pandas(), X_train).fit()
+fit_05.summary()
+```
+
+```{python}
+pl.DataFrame({
+  'term': fit_05.params.index.tolist(),
+  'estimate': fit_05.params.values,
+  'p_value': fit_05.pvalues.values
+}).filter(pl.col('term') != 'const')
+```
+
+ Frequentist Model
+
+```{python}
+# Combine the outcome and predictors into one training frame
+snow_train = pl.concat([y_train, pl.from_pandas(X_train.drop(columns = 'const'))], how = 'horizontal_extend').to_pandas()
+
+predictors = ['daysOpenLastYear', 'Runs', 'averageSnowfall', 'log_snow_making']
+
+fr_fit = sm.ols(
+  'Sentiment ~ ' + ' + '.join(predictors),
+  data = snow_train
+).fit()
+
+fr_fit.summary()
+```
+
+Bayesian Model
+
+```{python}
+# Specify a Bayesian linear regression
+ba_model = bmb.Model(
+  'Sentiment ~ ' + ' + '.join(predictors),
+  data = snow_train
+)
+
+# Specify priors
+priors_dict = {
+  'Intercept': bmb.Prior('Uniform', lower = -100, upper = 100),
+  **{term: bmb.Prior('Uniform', lower = -100, upper = 100) for term in predictors},
+  'sigma': bmb.Prior('Exponential', lam = 1)
+}
+
+ba_model.set_priors(priors = priors_dict)
+ba_model
+```
+
+```{python}
+# Fit a Bayesian linear regression
+ba_fit = ba_model.fit()
+```
+
+```{python}
+az.summary(ba_fit, ci_kind = 'hdi', ci_prob = 0.95)
 ```
