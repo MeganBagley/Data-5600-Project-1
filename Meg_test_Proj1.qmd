@@ -1,0 +1,527 @@
+---
+title: "project_1.1"
+format: html
+engine: jupyter
+jupyter: python3
+---
+
+*project setup*
+import libraries
+```{python}
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+import statsmodels.formula.api as smf
+import statsmodels.api as sm
+import bambi as bmb
+import arviz as az
+import polars as pl
+from pyprojroot.here import here
+from plotnine import *
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error, root_mean_squared_error
+```
+
+import data file
+```{python}
+snow_data = pl.read_excel(
+    here('/Users/megbagley/Desktop/Dat-5600/Data-5600-Project-1/OnTheSnow_v1 (1).xlsx')
+)
+
+#rename columns
+snow_data = (snow_data
+  .select(['city', 'Snow Making', 'daysOpenLastYear', 'Runs', 'averageSnowfall', 'Sentiment'])
+  .rename({
+    'Snow Making': 'snow_making',
+    'daysOpenLastYear': 'days_open_last',
+    'Runs': 'runs',
+    'averageSnowfall': 'avgsnow',
+    'Sentiment': 'sentiment',
+  })
+)
+
+
+#create a region 
+snow_data = snow_data.with_columns(
+    pl.when(
+        pl.col("city").is_in([
+            "Utah", "Idaho", "Montana", "Wyoming", "Colorado",
+            "New Mexico", "Arizona", "Nevada", "Sierra Nevada",
+            "Salt Lake City"
+        ])
+    ).then(pl.lit("Mountain"))
+
+    .when(
+        pl.col("city").is_in([
+            "Washington", "Oregon", "Alaska", "Mt. Hood"
+        ])
+    ).then(pl.lit("West"))
+
+    .when(
+        pl.col("city").is_in([
+            "Minnesota", "Wisconsin", "Michigan", "Illinois",
+            "Indiana", "Ohio", "Iowa", "South Dakota", "Missouri"
+        ])
+    ).then(pl.lit("Midwest"))
+
+    .when(
+        pl.col("city").is_in([
+            "New York", "Pennsylvania", "New Jersey", "Connecticut",
+            "Massachusetts", "Vermont", "New Hampshire", "Maine",
+            "Maryland", "Virginia", "West Virginia",
+            "North Carolina"
+        ])
+    ).then(pl.lit("East"))
+
+    .otherwise(pl.lit("Other"))
+    .alias("region")
+)
+
+#drop city column
+snow_data = snow_data.drop("city")
+
+#drop nulls and nans
+snow_data = snow_data.drop_nulls(['snow_making','days_open_last','runs','avgsnow','sentiment'])
+snow_data = snow_data.drop_nans(['snow_making','days_open_last','runs','avgsnow','sentiment'])
+
+
+snow_data.head()
+snow_data["region"].value_counts().sort("count")
+```
+
+fit OLS and collect residuals
+```{python}
+# Dummy code discrete predictors- use east as reference case becuase it has the most entries
+snow_train = (snow_data
+.to_dummies(columns = ['region'], drop_first = False)
+.select(pl.exclude('region_East'))
+)
+
+# fit a model
+fit_01 = smf.ols(
+    "sentiment ~ 1 + snow_making + days_open_last + runs + avgsnow + region_Midwest + region_Mountain + region_Other + region_West",
+    data = snow_train
+).fit()
+
+#save residuals
+snow_train = (snow_train
+  .with_columns(residuals_01 = pl.Series(fit_01.resid))
+  .with_columns(fitted_values_01 = pl.Series(fit_01.fittedvalues))
+  .with_row_index('observation')
+)
+```
+
+*exercise_7: exploring residuals*
+LINEARITY:
+```{python}
+(ggplot(
+    snow_train, 
+    aes(
+      x = 'residuals_01', 
+      y = 'fitted_values_01'
+    )
+  )
+  + geom_point(alpha = 0.25)
+  + geom_smooth(
+    method = 'lowess', 
+    color = 'red'
+  )
+  + labs(
+    title = 
+      'Linearity: Residuals vs. Fitted Values',
+    subtitle = 
+      'Look for a roughly horizontal line'
+  )
+)
+```
+
+INDEPENDENCE:
+```{python}
+(ggplot(
+    snow_train, 
+    aes(x = 'observation', y = 'residuals_01')
+  )
+  + geom_line(alpha = 0.5)
+  + geom_hline(yintercept = 0, color = 'red')
+  + labs(
+    title = 
+      'Independence: Sequential Residuals',
+    subtitle = 
+      'Look for a trend in mean or variance'
+  )
+)
+```
+
+CONSTANT VARIANCE:
+```{python}
+(ggplot(
+    snow_train, 
+    aes(
+      x = 'residuals_01', 
+      y = 'fitted_values_01'
+    )
+  )
+  + geom_point(alpha = 0.25, color = 'red')
+  + labs(
+    title = 
+      'Constant Variance: Residuals vs. Fitted Values',
+    subtitle = 
+      'Look for a funnel shape in the residuals'
+  )
+)
+```
+
+NORMALITY:
+```{python}
+(ggplot(
+    snow_train, 
+    aes(sample = 'residuals_01')
+  )
+  + stat_qq(alpha = 0.25)
+  + stat_qq_line(color = 'red')
+  + labs(
+    title = 'Normality: Q-Q Plot',
+    subtitle = 
+      'Points should follow the diagonal',
+    x = 'Theoretical Quantiles',
+    y = 'Sample Quantiles'
+  )
+)
+```
+
+MULTICOLINEARITY / IDENTIFIABILITY:
+```{python}
+from statsmodels.stats.outliers_influence import variance_inflation_factor
+
+snow_train.columns
+predictors = [
+  'snow_making',
+ 'days_open_last',
+ 'runs',
+ 'avgsnow',
+ 'region_Midwest',
+ 'region_Mountain',
+ 'region_Other',
+ 'region_West',
+]
+
+X_train = snow_train.select(predictors)
+
+pl.DataFrame({
+  'predictor': predictors,
+  'VIF': [
+    variance_inflation_factor(X_train, i)
+    for i in range(X_train.shape[1])
+  ]
+}).sort('VIF', descending = True)
+```
+
+*exercise_8: training splits*
+```{python}
+# Specify the design matrix and outcome
+X = snow_train.select(pl.exclude('sentiment'))
+y = snow_train.select('sentiment')
+
+# Split into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2, random_state = 42)
+```
+
+```{python}
+snow_train["sentiment"].describe()
+snow_train["sentiment"].value_counts().sort("sentiment") 
+```
+
+```{python}
+y_train = (y_train
+  .with_columns(
+    log_sentiment = (pl.col('sentiment') + 1).log()
+  )
+  .select('log_sentiment')
+)
+
+(ggplot(y_train, aes(x = 'log_sentiment'))
+  + geom_histogram(bins = 10)
+)
+
+# Add constant for intercept
+X_train = sm.add_constant(X_train.to_pandas())
+fit_04 = sm.OLS(y_train.to_pandas(), X_train).fit()
+
+# Fit the model
+fit_04 = sm.OLS(y_train, X_train).fit()
+fit_04.summary()
+
+# retrieve untransformed params
+coef_table = pl.DataFrame({
+    "parameter": fit_04.params.index,
+    "log_coef": fit_04.params.values,
+    "p_value": fit_04.pvalues.values
+})
+
+coef_table = (
+    coef_table
+    .with_columns(
+        ((pl.col("log_coef").exp() - 1) * 100)
+        .alias("percent_change")
+    )
+    .filter(pl.col("parameter") != "const")
+)
+
+coef_table
+```
+
+```{python}
+# Keep only the outcome and our four resort-attribute predictors
+snow_ols = snow_data.select('sentiment', 'snow_making', 'days_open_last', 'runs', 'avgsnow')
+
+snow_ols.head()
+```
+
+```{python}
+# Specify the outcome
+X = snow_ols.select(pl.exclude('sentiment'))
+y = snow_ols.select('sentiment')
+
+# Split into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(
+  X, y, test_size = 0.2, random_state = 42
+)
+```
+
+```{python}
+# Snow Making is heavily right-skewed, log transformed to normalize
+X_train = (X_train
+  .with_columns((pl.col('snow_making') + 1).log().alias('log_snow_making'))
+  .select(pl.exclude('snow_making'))
+  .to_pandas()
+)
+
+X_test = (X_test
+  .with_columns((pl.col('snow_making') + 1).log().alias('log_snow_making'))
+  .select(pl.exclude('snow_making'))
+  .to_pandas()
+)
+
+X_train.head()
+
+```
+
+Initial model 
+```{python}
+# Add constant for intercept
+X_train = sm.add_constant(X_train)
+
+# Fit the model
+fit_05 = sm.OLS(y_train.to_pandas(), X_train).fit()
+fit_05.summary()
+
+```
+
+```{python}
+pl.DataFrame({
+  'term': fit_05.params.index.tolist(),
+  'estimate': fit_05.params.values,
+  'p_value': fit_05.pvalues.values
+}).filter(pl.col('term') != 'const')
+```
+
+ Frequentist Model
+
+```{python}
+# Combine the outcome and predictors into one training frame
+snow_train = pl.concat([y_train, pl.from_pandas(X_train.drop(columns = 'const'))], how = 'horizontal_extend').to_pandas()
+
+predictors = ['days_open_last', 'runs', 'avgsnow', 'log_snow_making']
+
+fr_fit = smf.ols(
+  'sentiment ~ ' + ' + '.join(predictors),
+  data = snow_train
+).fit()
+
+fr_fit.summary()
+
+```
+
+Bayesian Model
+
+```{python}
+# Specify a Bayesian linear regression
+ba_model = bmb.Model(
+  'sentiment ~ ' + ' + '.join(predictors),
+  data = snow_train
+)
+
+# Specify priors
+priors_dict = {
+  'Intercept': bmb.Prior('Uniform', lower = -100, upper = 100),
+  **{term: bmb.Prior('Uniform', lower = -100, upper = 100) for term in predictors},
+  'sigma': bmb.Prior('Exponential', lam = 1)
+}
+
+ba_model.set_priors(priors = priors_dict)
+ba_model
+```
+
+```{python}
+# Fit a Bayesian linear regression
+ba_fit = ba_model.fit()
+```
+
+```{python}
+az.summary(ba_fit, ci_kind = 'hdi', ci_prob = 0.95)
+```
+
+# Model without region
+```{python}
+# Model without region
+X = snow_data.select(['snow_making','days_open_last','runs','avgsnow'])
+y = snow_data.select('sentiment')
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+y_train_log = y_train.with_columns((pl.col('sentiment') + 1).log().alias('log_sentiment')).select('log_sentiment')
+y_test_log  = y_test.with_columns((pl.col('sentiment') + 1).log().alias('log_sentiment')).select('log_sentiment')
+
+train_0 = pl.concat([y_train_log, X_train], how='horizontal').to_pandas()
+
+fit_0 = smf.ols('log_sentiment ~ snow_making + days_open_last+ runs + avgsnow', data=train_0).fit()
+
+pred_0 = fit_0.predict(X_test.to_pandas())
+mse_0 = mean_squared_error(y_test_log.to_pandas(), pred_0)
+rmse_0 = root_mean_squared_error(y_test_log.to_pandas(), pred_0)
+
+print(fit_0.summary())
+print("Without region MSE:", mse_0)
+print("Without region RMSE:", rmse_0)
+```
+
+# Model with region
+```{python}
+# Model with region
+snow_train = (snow_data
+  .to_dummies(columns=['region'], drop_first=False)
+  .select(pl.exclude('region_East'))
+)
+
+region_predictors = ['snow_making','days_open_last','runs','avgsnow',
+                      'region_Midwest','region_Mountain','region_Other','region_West']
+
+X = snow_train.select(region_predictors)
+y = snow_train.select('sentiment')
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+y_train_log = y_train.with_columns((pl.col('sentiment') + 1).log().alias('log_sentiment')).select('log_sentiment')
+y_test_log  = y_test.with_columns((pl.col('sentiment') + 1).log().alias('log_sentiment')).select('log_sentiment')
+
+train_01 = pl.concat([y_train_log, X_train], how='horizontal').to_pandas()
+
+fit_01 = smf.ols('log_sentiment ~ ' + ' + '.join(region_predictors), data=train_01).fit()
+
+pred_01 = fit_01.predict(X_test.to_pandas())
+mse_01 = mean_squared_error(y_test_log.to_pandas(), pred_01)
+rmse_01 = root_mean_squared_error(y_test_log.to_pandas(), pred_01)
+
+print(fit_01.summary())
+print("With region MSE:", mse_01)
+print("With region RMSE:", rmse_01)
+
+# residuals for existing diagnostics (I used AI for this portion, could be worth a look over)
+snow_train = (pl.from_pandas(train_01)
+  .with_columns(residuals_01 = pl.Series(fit_01.resid))
+  .with_columns(fitted_values_01 = pl.Series(fit_01.fittedvalues))
+  .with_row_index('observation')
+)
+
+```
+
+# Interpretation of Results
+Region Adjusted R squared is 0.424, while removing region brings adjusted R squared to 0.428. This is already telling, as the removal of parameters actually increased the R squared. Typically we account for a slight increase with more parameters, illustrating a stronger model fit. 
+
+The model RMSE without region is 0.075, while the RMSE including region is 0.074. This change is small
+
+# Drop Region run full model
+```{python}
+
+full_data = (snow_data
+  .to_dummies(columns=['region'], drop_first=False)
+  .select(pl.exclude('region_East'))
+  .with_columns((pl.col('sentiment') + 1).log().alias('log_sentiment'))
+).to_pandas()
+
+fr_fit = smf.ols('log_sentiment ~ ' + ' + '.join(region_predictors), data=full_data).fit()
+print(fr_fit.summary())
+
+fr_ci = fr_fit.conf_int().rename_axis('parameter').reset_index()
+fr_ci.columns = ['parameter', 'lower', 'upper']
+
+(pl.from_pandas(fr_ci)
+  .with_columns([
+    ((np.exp(pl.col('lower')) - 1) * 100).alias('lower_percent'),
+    ((np.exp(pl.col('upper')) - 1) * 100).alias('upper_percent'),
+  ])
+)
+```
+
+```{python}
+# make predictions with intervals
+X_new = pl.DataFrame({
+    'snow_making':     [100, 500, 100, 500],
+     
+     # guage differences in snow making
+    'days_open_last':  [120, 120, 120, 120], 
+   
+    # kept constant, as its something difficult for resorts to fully control
+    'runs':            [30, 10, 10, 30], 
+   
+    # to guage the effect on runs, and if resorts should build more
+    'avgsnow':         [200, 200, 200, 200], 
+    
+    #kept constant, as it is something difficult for resorts to fully control 
+    'region_Midwest':  [0, 0, 0, 0],
+    'region_Mountain': [1, 1, 0, 0], 
+    'region_Other':    [0, 0, 0, 0],
+    'region_West':     [0, 0, 1, 1], 
+    
+    #use the 2 biggest regions to guage profit based on region
+})
+
+X_new = X_new.with_columns(log_pred = pl.Series(fr_fit.predict(X_new.to_pandas())))
+X_new = X_new.with_columns(pred_sentiment = (np.exp(pl.col('log_pred')) - 1))
+X_new
+
+print(fr_fit.get_prediction(X_new.to_pandas()).summary_frame(alpha=0.05))
+```
+
+# Bayesian model + posterior predictive check
+```{python}
+ba_model = bmb.Model('log_sentiment ~ ' + ' + '.join(region_predictors), data=full_data)
+
+priors_dict = {
+  'Intercept': bmb.Prior('Uniform', lower=-100, upper=100),
+  **{t: bmb.Prior('Uniform', lower=-100, upper=100) for t in region_predictors},
+  'sigma': bmb.Prior('Exponential', lam=1)
+}
+ba_model.set_priors(priors=priors_dict)
+ba_fit = ba_model.fit()
+az.summary(ba_fit, ci_kind='hdi', ci_prob=0.95)
+
+ba_model.predict(ba_fit, kind='response')
+
+ppc_array = az.extract(ba_fit, group='posterior_predictive', var_names='log_sentiment', num_samples=100).to_numpy()
+
+ppc_data = pl.DataFrame({
+  'log_sentiment': ppc_array.flatten(order='F'),
+  'draw': np.repeat(np.arange(ppc_array.shape[1]), ppc_array.shape[0]),
+})
+
+(ggplot()
+  + geom_density(ppc_data, aes(x='log_sentiment', group='draw'), color='red', alpha=0.1)
+  + geom_density(pl.from_pandas(full_data), aes(x='log_sentiment'))
+  + labs(title='Predicted vs. Real Outcomes', subtitle='Investigate structural differences')
+)
+```
+
+# Interpretation of Predicted vs Real Outcomes
+
+The predicted outcomes show a large range, showing signs of potential under fitting. our prediction falls within the deviation, showing the parameters selected align with the assumptions needed for the regression. There could be more work done to fit this model.
