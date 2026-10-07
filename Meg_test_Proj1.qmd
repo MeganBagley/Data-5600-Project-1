@@ -475,7 +475,13 @@ X_new = pl.DataFrame({
     'runs':            [30, 10, 10, 30], 
    
     # to guage the effect on runs, and if resorts should build more
-    'avgsnow':         [200, 200, 200, 200]
+    'avgsnow':         [200, 200, 200, 200],
+    'region_Midwest':  [0, 0, 0, 0],
+    'region_Mountain': [1, 1, 0, 0], 
+    'region_Other':    [0, 0, 0, 0],
+    'region_West':     [0, 0, 1, 1] 
+    
+    #use the 2 biggest regions to guage profit based on region
 })
 
 X_new = X_new.with_columns(log_pred = pl.Series(fr_fit.predict(X_new.to_pandas())))
