@@ -85,7 +85,7 @@ snow_train = (snow_data
 
 # fit a model
 fit_01 = smf.ols(
-    "sentiment ~ 1 + snow_making + days_open_last + runs + avgsnow + region_Midwest + region_Mountain + region_Other + region_West",
+    "Sentiment ~ 1 + snow_making + days_open_last + runs + avgsnow + region_Midwest + region_Mountain + region_Other + region_West",
     data = snow_train
 ).fit()
 
