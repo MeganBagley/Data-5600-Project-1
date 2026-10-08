@@ -463,33 +463,6 @@ fr_ci.columns = ['parameter', 'lower', 'upper']
 )
 ```
 
-```{python}
-# make predictions with intervals
-X_new = pl.DataFrame({
-    'snow_making':     [100, 500, 100, 500],
-     
-     # guage differences in snow making
-    'days_open_last':  [120, 120, 120, 120], 
-   
-    # kept constant, as its something difficult for resorts to fully control
-    'runs':            [30, 10, 10, 30], 
-   
-    # to guage the effect on runs, and if resorts should build more
-    'avgsnow':         [200, 200, 200, 200],
-    'region_Midwest':  [0, 0, 0, 0],
-    'region_Mountain': [1, 1, 0, 0], 
-    'region_Other':    [0, 0, 0, 0],
-    'region_West':     [0, 0, 1, 1] 
-    
-    #use the 2 biggest regions to guage profit based on region
-})
-
-X_new = X_new.with_columns(log_pred = pl.Series(fr_fit.predict(X_new.to_pandas())))
-X_new = X_new.with_columns(pred_sentiment = (np.exp(pl.col('log_pred')) - 1))
-X_new
-
-print(fr_fit.get_prediction(X_new.to_pandas()).summary_frame(alpha=0.05))
-```
 
 # Bayesian model + posterior predictive check
 ```{python}
@@ -523,3 +496,85 @@ ppc_data = pl.DataFrame({
 # Interpretation of Predicted vs Real Outcomes
 
 The predicted outcomes show a large range, showing signs of potential under fitting. our prediction falls within the deviation, showing the parameters selected align with the assumptions needed for the regression. There could be more work done to fit this model.
+
+
+```{python}
+# Construct confidence interval data frame
+df_01 = pl.DataFrame({
+  'term': fr_fit.conf_int().index.tolist(),
+  'coef': fr_fit.params.tolist(),
+  'conf_low': (fr_fit
+    .conf_int().loc[:, 0].tolist()),
+  'conf_high': (fr_fit
+    .conf_int().loc[:, 1].tolist())
+})
+
+# Plot the confidence intervals
+(ggplot(df_01, aes(x = 'coef', y = 'term'))
+  + geom_point()
+  + geom_errorbarh(
+    aes(xmin = 'conf_low', xmax = 'conf_high'), 
+    height = 0.2
+  )
+  + geom_vline(
+    xintercept = 0, 
+    color = 'red', linetype = '--'
+  )
+  + labs(x = '', y = '')
+)
+```
+
+```{python}
+# Specify a payoff function and turn log back to interpretable results
+def payoff(log_pred):
+    return np.exp(log_pred) - 1
+
+# Construct a new design matrix for prediction
+X_new = pl.DataFrame({
+  'snow_making':     [100, 100, 500, 500, 100, 100, 500, 500, 100, 100, 500, 500],
+  'days_open_last':  [120, 120, 120, 120, 120, 120, 120, 120, 120, 120, 120, 120],
+  'runs':            [10, 30, 10, 30, 10, 30, 10, 30, 10, 30, 10, 30],
+  'avgsnow':         [200, 200, 200, 200, 200, 200, 200, 200, 200, 200, 200, 200],
+  'region_Midwest':  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  'region_Mountain': [0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0],
+  'region_Other':    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  'region_West':     [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1]
+})
+
+# Get predictions for X_new for the model without region and calculate payoff
+X_new = (X_new
+  .with_columns(
+    y_pred_0 = pl.Series(fit_0.predict(X_new.to_pandas()))
+  )
+  .with_columns(
+    sentiment_0 = payoff(pl.col('y_pred_0'))
+  )
+)
+```
+
+```{python}
+# Average across actions
+X_new['sentiment_0'].mean()
+```
+
+```{python}
+# Get predictions for X_new for the model with region and calculate payoff
+X_new = (X_new
+  .with_columns(
+    y_pred_01 = pl.Series(fit_01.predict(X_new.to_pandas()))
+  )
+  .with_columns(
+    sentiment_01 = payoff(pl.col('y_pred_01'))
+  )
+)
+
+# Average across actions
+X_new['sentiment_01'].mean()
+```
+
+```{python}
+# Compare the recommended action under each model
+X_new.select('snow_making', 'runs', 'region_Mountain', 'region_West', 'sentiment_0', 'sentiment_01')
+```
+
+Including region only slightly changes the decision theoretic fit. Both models agree that the highest predicted sentiment comes from 500 acres of snowmaking and 30 runs. The model without region has the better Adjusted R-squared, and has nearly identical predictive and decision theoretic fit, so it's our best fitting model. 
