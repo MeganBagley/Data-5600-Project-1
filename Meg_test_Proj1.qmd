@@ -25,7 +25,7 @@ from sklearn.metrics import mean_squared_error, root_mean_squared_error
 import data file
 ```{python}
 snow_data = pl.read_excel(
-    here('/Users/megbagley/Desktop/Dat-5600/Data-5600-Project-1/OnTheSnow_v1 (1).xlsx')
+    here('D:\CoursesUSU\Final_Semester\Intro_Reg_ML\DATA5600\data-5600\Project1\Data-5600-Project-1\OnTheSnow_v1.xlsx')
 )
 
 #rename columns
