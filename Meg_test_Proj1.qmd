@@ -1,10 +1,22 @@
 ---
-title: "project_1.1"
+title: "DATA5600 - Project 1 - Technical Report"
+authors : "Jonah Crocker, Megan Bagley, Abrar Malik"
 format: html
 engine: jupyter
 jupyter: python3
 ---
-
+# Executive Summary 
+give an executive summary 
+# Plan 
+explain the plan phase 
+# Ideal Data 
+explain the ideal dataset 
+# Data 
+explain what is in the dataset 
+# Predictors & Outcome 
+brief descriptio of predictors and outcome 
+# Build 
+explain the build phase 
 *project setup*
 import libraries
 ```{python}
@@ -22,10 +34,11 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error, root_mean_squared_error
 ```
 
-import data file
+import dataset file
 ```{python}
+# read the data file 
 snow_data = pl.read_excel(
-    here('D:\CoursesUSU\Final_Semester\Intro_Reg_ML\DATA5600\data-5600\Project1\Data-5600-Project-1\OnTheSnow_v1.xlsx')
+    here('D:\\CoursesUSU\\Final_Semester\\Intro_Reg_ML\\DATA5600\\data-5600\\Project1\\Data-5600-Project-1\\OnTheSnow_v1.xlsx')
 )
 
 #rename columns
@@ -41,7 +54,7 @@ snow_data = (snow_data
 )
 
 
-#create a region 
+#create a region , explain why we created regions 
 snow_data = snow_data.with_columns(
     pl.when(
         pl.col("city").is_in([
@@ -137,6 +150,22 @@ create visualization for days open last year vs sentiment
   )
 )
 ```
+
+visualization for sentiment vs runs 
+
+```{python}
+(ggplot(snow_data, aes(x='sentiment', y='runs'))
+  +geom_jitter(alpha=0.25, width = 0.2, height = 0)
+  + geom_smooth(method='lowess', color = 'red')
+  + labs(
+    title='Sentiment vs Runs',
+    subtitle='Association with Predictor',
+    x='Sentiment',
+    y='Runs'
+  )
+)
+```
+
 
 
 fit OLS and collect residuals
@@ -541,7 +570,9 @@ X_new
 print(fr_fit.get_prediction(X_new.to_pandas()).summary_frame(alpha=0.05))
 ```
 
-# Bayesian model + posterior predictive check
+# Predict 
+
+## Bayesian model + posterior predictive check
 ```{python}
 ba_model = bmb.Model('log_sentiment ~ ' + ' + '.join(region_predictors), data=full_data)
 
