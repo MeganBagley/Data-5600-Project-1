@@ -8,7 +8,7 @@ jupyter: python3
 # Executive Summary 
 give an executive summary 
 # Plan 
-explain the plan phase 
+explain the plan phase with the business objective and context 
 # Ideal Data 
 explain the ideal dataset 
 # Data 
@@ -16,7 +16,7 @@ explain what is in the dataset
 # Predictors & Outcome 
 brief descriptio of predictors and outcome 
 # Build 
-explain the build phase 
+explain the build phase with the loss function , explain actions and unknowns 
 *project setup*
 import libraries
 ```{python}
@@ -101,7 +101,9 @@ snow_data = snow_data.drop_nans(['snow_making','days_open_last','runs','avgsnow'
 snow_data.head()
 snow_data["region"].value_counts().sort("count")
 ```
-# Exploring data with visualizations 
+
+# Exploring data with visualizations
+Explore data and understand its limitations  
 Create visualizations for snowmaking vs sentiment 
 ```{python}
 from plotnine import geom_smooth
@@ -166,11 +168,13 @@ visualization for sentiment vs runs
 )
 ```
 
+Our underlying assumption that sentiment is related to predictors is validated after observing these charts. Although, this is not an accurate way to see corresponding affects of predictors on output, it verifies our underlying assumption of the business problem that sentiment depends upon snow making, average snow fall, runs and number of days open. 
 
+# Fit 
 
 fit OLS and collect residuals
 ```{python}
-# Dummy code discrete predictors- use east as reference case becuase it has the most entries
+# Dummy code discrete predictors- used east as reference case becuase it has the most entries
 snow_train = (snow_data
 .to_dummies(columns = ['region'], drop_first = False)
 .select(pl.exclude('region_East'))
@@ -190,9 +194,15 @@ snow_train = (snow_train
 )
 ```
 
+East region has been dropped as it had the most number of ski resorts. Hence, east region is taken as a baseline reference for our model. We have fitted ordinary least squares model to fit with out predictors. The residuals and fitted values are saved to our data frame under observations. 
+
+# Reconcile 
+
+## Satifying the assumptions 
 *exercise_7: exploring residuals*
-LINEARITY:
+### LINEARITY:
 ```{python}
+# run to check for linearity assumption is fullfilled 
 (ggplot(
     snow_train, 
     aes(
@@ -214,7 +224,9 @@ LINEARITY:
 )
 ```
 
-INDEPENDENCE:
+As observed in our chart, the linearity assumption has been fullfilled by comparing the residuals and the fitted values in our model. 
+
+### INDEPENDENCE:
 ```{python}
 (ggplot(
     snow_train, 
@@ -231,7 +243,9 @@ INDEPENDENCE:
 )
 ```
 
-CONSTANT VARIANCE:
+Independence assumption has been verified in the data as there is no visible trend in the residuals vs obseration plot. All the points are randomly distributed for our data. 
+
+### CONSTANT VARIANCE:
 ```{python}
 (ggplot(
     snow_train, 
@@ -249,6 +263,8 @@ CONSTANT VARIANCE:
   )
 )
 ```
+
+The data points for fitted vs residuals are not in a funnel shape; which suggests that the constant variance assumption has been satisfied.  
 
 NORMALITY:
 ```{python}
@@ -450,7 +466,9 @@ ba_fit = ba_model.fit()
 az.summary(ba_fit, ci_kind = 'hdi', ci_prob = 0.95)
 ```
 
-# Model without region
+# Evaluate 
+
+## Model without region
 ```{python}
 # Model without region
 X = snow_data.select(['snow_making','days_open_last','runs','avgsnow'])
@@ -474,7 +492,7 @@ print("Without region MSE:", mse_0)
 print("Without region RMSE:", rmse_0)
 ```
 
-# Model with region
+## Model with region
 ```{python}
 # Model with region
 snow_train = (snow_data
@@ -519,7 +537,11 @@ Region Adjusted R squared is 0.424, while removing region brings adjusted R squa
 
 The model RMSE without region is 0.075, while the RMSE including region is 0.074. This change is small
 
-# Drop Region run full model
+## analyse for decision theoratic fit 
+
+# Predict 
+
+## Drop Region run full model
 ```{python}
 
 full_data = (snow_data
@@ -570,7 +592,7 @@ X_new
 print(fr_fit.get_prediction(X_new.to_pandas()).summary_frame(alpha=0.05))
 ```
 
-# Predict 
+
 
 ## Bayesian model + posterior predictive check
 ```{python}
