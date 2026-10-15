@@ -34,13 +34,18 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error, root_mean_squared_error
 ```
 
-import dataset file
+import dataset file, the snow_data is the orignial dataset that is used in the analysis as is 
 ```{python}
 # read the data file 
 snow_data = pl.read_excel(
     here('D:\\CoursesUSU\\Final_Semester\\Intro_Reg_ML\\DATA5600\\data-5600\\Project1\\Data-5600-Project-1\\OnTheSnow_v1.xlsx')
 )
 
+```
+
+rename the columns and to use as predictors 
+
+```{python}
 #rename columns
 snow_data = (snow_data
   .select(['city', 'Snow Making', 'daysOpenLastYear', 'Runs', 'averageSnowfall', 'Sentiment'])
@@ -52,8 +57,10 @@ snow_data = (snow_data
     'Sentiment': 'sentiment',
   })
 )
+```
 
-
+create regions for each state to combine different states & cities 
+```{python}
 #create a region , explain why we created regions 
 snow_data = snow_data.with_columns(
     pl.when(
@@ -97,12 +104,12 @@ snow_data = snow_data.drop("city")
 snow_data = snow_data.drop_nulls(['snow_making','days_open_last','runs','avgsnow','sentiment'])
 snow_data = snow_data.drop_nans(['snow_making','days_open_last','runs','avgsnow','sentiment'])
 
-
+# see the snow_data dataset cleaned data and count the region entries 
 snow_data.head()
 snow_data["region"].value_counts().sort("count")
 ```
 
-# Exploring data with visualizations
+## Exploring data with visualizations
 Explore data and understand its limitations. We are trying to verify our baseline assumption that outcome of sentiment depends upon selected predictors.   
 
 Create visualizations for snowmaking vs sentiment 
@@ -121,7 +128,7 @@ from plotnine import geom_point
 )
 ```
 
-Create visualizations for Snow Making vs sentiment , y axis adjusted to take few outliers to see clear graph 
+Create visualizations for Snow Making vs sentiment , y axis is adjusted to take few outliers to see clear graph 
 
 ```{python}
 from plotnine import coord_cartesian
@@ -172,10 +179,12 @@ visualization for sentiment vs runs
 Our underlying assumption that sentiment is related to predictors is validated after observing these charts. Although, this is not an accurate way to see corresponding affects of predictors on output, it verifies our underlying assumption of the business problem that sentiment depends upon snow making, average snow fall, runs and number of days open. 
 
 # Fit 
+The model fitting is done in this section of the report. 
 East region has been dropped as it had the most number of ski resorts. Hence, east region is taken as a baseline reference for our model. We have fitted ordinary least squares model to fit with out predictors. The residuals and fitted values are saved to our data frame under observations. 
 
 
-fit OLS and collect residuals
+fit OLS and collect residuals for the assumption verfications.  We dummy code the predictors so that we can drop the eastern region as it has the most number of ski resorts and will be used as a baseline in our model. We will see later that model comparison is done with and without regions. 
+
 ```{python}
 # Dummy code discrete predictors- used east as reference case becuase it has the most entries
 snow_train = (snow_data
@@ -196,8 +205,6 @@ snow_train = (snow_train
   .with_row_index('observation')
 )
 ```
-
-
 
 # Reconcile 
 
@@ -285,14 +292,14 @@ Normality assumption has been fullfilled as the error is normally distributed an
   + labs(
     title = 'Normality: Q-Q Plot',
     subtitle = 
-      'Points should follow the diagonal',
+      'Points follow the diagonal',
     x = 'Theoretical Quantiles',
     y = 'Sample Quantiles'
   )
 )
 ```
 
-
+All the predictors show less than 10 VIF value, so our included predictors satisfy the multicollinearity assumptions. 
 
 ### MULTICOLINEARITY / IDENTIFIABILITY:
 ```{python}
@@ -322,8 +329,6 @@ pl.DataFrame({
 
 
 ```
-
-All the predictors show less than 10 VIF value, so our included predictors satisfy the multicollinearity assumptions. 
 
 ## Feature Engineering 
 
@@ -482,17 +487,21 @@ ggplot(snow_ols, aes ( x = 'runs'))
 ```
 
 
-snow making is log transformed into log_snow_making to avoid right skewed data. We create an x train with columns log_snow_making 
+snow making and runs are log transformed into log_snow_making and log_runs to avoid right skewed data. We create an x train with columns log_snow_making and log_runs 
 
 ```{python}
 log_cols = ['snow_making', 'runs']
 
-# Snow Making is heavily right-skewed, log transformed to normalize
+# Snow Making & runs are heavily right-skewed, log transformed to normalize
+
+# create x train for the model 
 X_train = (X_train
   .with_columns((pl.col(col) + 1).log().alias(f'log_{col}') for col in log_cols)
   .select(pl.exclude('snow_making', 'runs'))
   .to_pandas()
 )
+
+# create x test for the model and use same log transformations for x test as of x train 
 
 X_test = (X_test
   .with_columns((pl.col(col) + 1).log().alias(f'log_{col}') for col in log_cols)
@@ -500,16 +509,21 @@ X_test = (X_test
   .to_pandas()
 )
 
+# see the value transformed for snow making and runs 
 X_train.head()
 
 ```
 
-Initial model 
+Start our analysis for the initial model 
+The r squared value for the model is 0.463 and Adjusted R squared for the model is 0.451. 
+
+
+## Initial model 
 ```{python}
 # Add constant for intercept
 X_train = sm.add_constant(X_train)
 
-# Fit the model
+# Fit the model, Ordinary least squares is for the model fit 
 fit_05 = sm.OLS(y_train.to_pandas(), X_train).fit()
 fit_05.summary()
 
