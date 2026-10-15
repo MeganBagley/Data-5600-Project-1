@@ -103,7 +103,8 @@ snow_data["region"].value_counts().sort("count")
 ```
 
 # Exploring data with visualizations
-Explore data and understand its limitations  
+Explore data and understand its limitations. We are trying to verify our baseline assumption that outcome of sentiment depends upon selected predictors.   
+
 Create visualizations for snowmaking vs sentiment 
 ```{python}
 from plotnine import geom_smooth
@@ -171,6 +172,8 @@ visualization for sentiment vs runs
 Our underlying assumption that sentiment is related to predictors is validated after observing these charts. Although, this is not an accurate way to see corresponding affects of predictors on output, it verifies our underlying assumption of the business problem that sentiment depends upon snow making, average snow fall, runs and number of days open. 
 
 # Fit 
+East region has been dropped as it had the most number of ski resorts. Hence, east region is taken as a baseline reference for our model. We have fitted ordinary least squares model to fit with out predictors. The residuals and fitted values are saved to our data frame under observations. 
+
 
 fit OLS and collect residuals
 ```{python}
@@ -194,12 +197,17 @@ snow_train = (snow_train
 )
 ```
 
-East region has been dropped as it had the most number of ski resorts. Hence, east region is taken as a baseline reference for our model. We have fitted ordinary least squares model to fit with out predictors. The residuals and fitted values are saved to our data frame under observations. 
+
 
 # Reconcile 
 
+To reconcile, we are verifying all assumptions to fit to our model. All the assumptions are verified to fit to the model to have accurate analysis. 
+
 ## Satifying the assumptions 
 *exercise_7: exploring residuals*
+
+As observed in our chart, the linearity assumption has been fullfilled by comparing the residuals and the fitted values in our model. 
+
 ### LINEARITY:
 ```{python}
 # run to check for linearity assumption is fullfilled 
@@ -224,7 +232,7 @@ East region has been dropped as it had the most number of ski resorts. Hence, ea
 )
 ```
 
-As observed in our chart, the linearity assumption has been fullfilled by comparing the residuals and the fitted values in our model. 
+Independence assumption has been verified in the data as there is no visible trend in the residuals vs obseration plot. All the points are randomly distributed for our data. 
 
 ### INDEPENDENCE:
 ```{python}
@@ -243,7 +251,7 @@ As observed in our chart, the linearity assumption has been fullfilled by compar
 )
 ```
 
-Independence assumption has been verified in the data as there is no visible trend in the residuals vs obseration plot. All the points are randomly distributed for our data. 
+The data points for fitted vs residuals are not in a funnel shape; which suggests that the constant variance assumption has been satisfied.  
 
 ### CONSTANT VARIANCE:
 ```{python}
@@ -264,7 +272,7 @@ Independence assumption has been verified in the data as there is no visible tre
 )
 ```
 
-The data points for fitted vs residuals are not in a funnel shape; which suggests that the constant variance assumption has been satisfied.  
+Normality assumption has been fullfilled as the error is normally distributed and follows the line. 
 
 ### NORMALITY:
 ```{python}
@@ -284,7 +292,7 @@ The data points for fitted vs residuals are not in a funnel shape; which suggest
 )
 ```
 
-Normality assumption has been fullfilled as the error is normally distributed. 
+
 
 ### MULTICOLINEARITY / IDENTIFIABILITY:
 ```{python}
@@ -311,6 +319,8 @@ pl.DataFrame({
     for i in range(X_train.shape[1])
   ]
 }).sort('VIF', descending = True)
+
+
 ```
 
 All the predictors show less than 10 VIF value, so our included predictors satisfy the multicollinearity assumptions. 
@@ -318,7 +328,7 @@ All the predictors show less than 10 VIF value, so our included predictors satis
 ## Feature Engineering 
 
 we will split data into train and test sets to avoid underfitting and overfitting for our model 
-
+The following block does the data split part. The date is in 80/20 split 
 *exercise_8: training splits*
 ```{python}
 # Specify the design matrix and outcome
@@ -329,12 +339,23 @@ y = snow_train.select('sentiment')
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2, random_state = 42)
 ```
 
+The snow train data is analyzed to see the count of sentiment values as well as count against each value to understand more about the training data. 
+
 ```{python}
 snow_train["sentiment"].describe()
 snow_train["sentiment"].value_counts().sort("sentiment") 
 ```
 
-The snow train data is analyzed to see the count of sentiment values as well as count against each value to understand more about the training data. 
+
+The sentiment is plotted for the bins to see whether sentiment is right skewed. As the graphs shows that the sentiment is right skewed, we will take log of this data to avoid right skewed data.
+
+```{python}
+(ggplot(y_train, aes(x = 'sentiment'))
+  + geom_histogram(bins = 10, binwidth =0.15)
+)
+```
+
+The y train is defined with log of sentiment in this block with a new column log_sentiment and histogram plot of the log_sentiment is provided to see the data again. 1 is added to the formula as to avoid log(0). The original column with the name sentiment is dropped and the new column log_sentiment is used for y train. 
 
 ```{python}
 #define y train with log_sentiment to transform sentiment values 
@@ -346,18 +367,39 @@ y_train = (y_train
   .select('log_sentiment')
 )
 
+```
+
+As log_sentiment has been created, its important to see the logged data and distribution across bins. The log resolves the right skewed data problem and can be observed to be in much closed bin sizes. 
+
+```{python}
+#plot the historgram for log_sentiment 
 (ggplot(y_train, aes(x = 'log_sentiment'))
   + geom_histogram(bins = 10)
 )
 
-# Add constant for intercept
+```
+
+We want to add constant for X train data and convert it to pandas dataframe. 
+We fit the model with linear regression with y as outcome and x as predictors. The regression will run in this block and summary is presented below. All the coefficients and respective R squared values are calculated in this block. 
+
+```{python}
+# Add constant for intercept 
 X_train = sm.add_constant(X_train.to_pandas())
 fit_04 = sm.OLS(y_train.to_pandas(), X_train).fit()
 
-# Fit the model
-fit_04 = sm.OLS(y_train, X_train).fit()
+# Summarize the model
 fit_04.summary()
 
+```
+
+We need to transform from the log scale. This block does this part. 
+- Parameters: gives the name of each predictor 
+- log_coef: the co efficient on the log scale 
+- p_value : statistical significance of each predictor 
+
+the values are stored in the coef_table variable which gives parameters, log co efficient values and p value of each predictor. another column called percent_change is added to get the exact percentage change values for each predictor. 
+
+```{python}
 # retrieve untransformed params
 coef_table = pl.DataFrame({
     "parameter": fit_04.params.index,
@@ -377,13 +419,25 @@ coef_table = (
 coef_table
 ```
 
+We now want to select the snow predictors for our model and run the analysis on our complete dataset by comparing bayesian and frequentist models and selecting best model for our analysis. 
+
+To start off, we keep only the outcome and predictors selected for our model. 
+
+In our case, sentiment is the outcome and predictors are: 
+- snow making 
+- days open last year 
+- runs 
+- and average snowfall 
+
 ```{python}
 # Keep only the outcome and our four resort-attribute predictors
 snow_ols = snow_data.select('sentiment', 'snow_making', 'days_open_last', 'runs', 'avgsnow')
 
+# see the data in this data frame 
 snow_ols.head()
 ```
 
+We now define and x and y values for our model and do the 80/20 split for our model 
 ```{python}
 # Specify the outcome
 X = snow_ols.select(pl.exclude('sentiment'))
@@ -395,17 +449,54 @@ X_train, X_test, y_train, y_test = train_test_split(
 )
 ```
 
+We view the snow making historgram and find out that it is right skewed. We will take log for this predictor to avoid right skewed data 
+
 ```{python}
+from plotnine.scales import limits
+from plotnine import scale_x_continuous
+from plotnine import geom_histogram
+from plotnine import ggplot
+(
+ggplot(snow_ols, aes(x = 'snow_making'))
++ geom_histogram(bins=10) +
+scale_x_continuous(limits=[-100,1000])
+)
+
+```
+
+We also check the data for days open last which seems to be ok 
+```{python}
+(
+ggplot(snow_ols, aes ( x = 'days_open_last'))
++ geom_histogram(bins=10)
+)
+```
+
+we check the data for runs and found out that it is also right skewed 
+
+```{python}
+(
+ggplot(snow_ols, aes ( x = 'runs'))
++ geom_histogram(bins=10)
+)
+```
+
+
+snow making is log transformed into log_snow_making to avoid right skewed data. We create an x train with columns log_snow_making 
+
+```{python}
+log_cols = ['snow_making', 'runs']
+
 # Snow Making is heavily right-skewed, log transformed to normalize
 X_train = (X_train
-  .with_columns((pl.col('snow_making') + 1).log().alias('log_snow_making'))
-  .select(pl.exclude('snow_making'))
+  .with_columns((pl.col(col) + 1).log().alias(f'log_{col}') for col in log_cols)
+  .select(pl.exclude('snow_making', 'runs'))
   .to_pandas()
 )
 
 X_test = (X_test
-  .with_columns((pl.col('snow_making') + 1).log().alias('log_snow_making'))
-  .select(pl.exclude('snow_making'))
+  .with_columns((pl.col(col) + 1).log().alias(f'log_{col}') for col in log_cols)
+  .select(pl.exclude('snow_making', 'runs'))
   .to_pandas()
 )
 
@@ -438,7 +529,7 @@ pl.DataFrame({
 # Combine the outcome and predictors into one training frame
 snow_train = pl.concat([y_train, pl.from_pandas(X_train.drop(columns = 'const'))], how = 'horizontal_extend').to_pandas()
 
-predictors = ['days_open_last', 'runs', 'avgsnow', 'log_snow_making']
+predictors = ['days_open_last', 'log_runs', 'avgsnow', 'log_snow_making']
 
 fr_fit = smf.ols(
   'sentiment ~ ' + ' + '.join(predictors),
@@ -471,7 +562,7 @@ ba_model
 
 ```{python}
 # Fit a Bayesian linear regression
-ba_fit = ba_model.fit()
+ba_fit = ba_model.fit(cores = 1) # used cores = 1 as the code got stuck on 4 cores 
 ```
 
 ```{python}
