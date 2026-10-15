@@ -266,7 +266,7 @@ Independence assumption has been verified in the data as there is no visible tre
 
 The data points for fitted vs residuals are not in a funnel shape; which suggests that the constant variance assumption has been satisfied.  
 
-NORMALITY:
+### NORMALITY:
 ```{python}
 (ggplot(
     snow_train, 
@@ -284,7 +284,9 @@ NORMALITY:
 )
 ```
 
-MULTICOLINEARITY / IDENTIFIABILITY:
+Normality assumption has been fullfilled as the error is normally distributed. 
+
+### MULTICOLINEARITY / IDENTIFIABILITY:
 ```{python}
 from statsmodels.stats.outliers_influence import variance_inflation_factor
 
@@ -311,6 +313,12 @@ pl.DataFrame({
 }).sort('VIF', descending = True)
 ```
 
+All the predictors show less than 10 VIF value, so our included predictors satisfy the multicollinearity assumptions. 
+
+## Feature Engineering 
+
+we will split data into train and test sets to avoid underfitting and overfitting for our model 
+
 *exercise_8: training splits*
 ```{python}
 # Specify the design matrix and outcome
@@ -326,7 +334,11 @@ snow_train["sentiment"].describe()
 snow_train["sentiment"].value_counts().sort("sentiment") 
 ```
 
+The snow train data is analyzed to see the count of sentiment values as well as count against each value to understand more about the training data. 
+
 ```{python}
+#define y train with log_sentiment to transform sentiment values 
+
 y_train = (y_train
   .with_columns(
     log_sentiment = (pl.col('sentiment') + 1).log()
