@@ -639,6 +639,8 @@ Region was used in the analysis as there are different regions which host ski re
 - Without region MSE: 0.005488806440165671
 - Without region RMSE: 0.07408647946937194
 
+The number of runs is still the most significant factor. 1% increase in runs corresponds to 0.066% increase in sentiment for the sentiment scale ranging 1-7.
+
 ### Model without region
 ```{python}
 # Model without region
@@ -688,6 +690,38 @@ rmse_0 = root_mean_squared_error(y_test_log.to_pandas(), pred_0)
 print(fit_0.summary())
 print("Without region MSE:", mse_0)
 print("Without region RMSE:", rmse_0)
+```
+
+#### Communicating the model result without region 
+The confidence intervals are communicated for the model. As observed, the most significant predictor is number of runs, followed by snow making, whereas days open last year has slight significance. Affect of Averege snow fall is almost near zero in this model.  
+
+```{python}
+
+# Construct confidence interval data frame with percent change
+df_01 = pl.DataFrame({
+  'term': [t.replace('log_', '') for t in fit_0.conf_int().drop('Intercept').index.tolist()],
+  'coef': [(np.exp(c) - 1) * 100 for c in fit_0.params.drop('Intercept').tolist()],
+  'conf_low': [(np.exp(c) - 1) * 100 for c in fit_0.conf_int().drop('Intercept').iloc[:, 0].tolist()],
+  'conf_high': [(np.exp(c) - 1) * 100 for c in fit_0.conf_int().drop('Intercept').iloc[:, 1].tolist()]
+})
+
+# Plot the confidence intervals
+(ggplot(df_01, aes(x='coef', y='term'))
+  + geom_point()
+  + geom_errorbarh(
+    aes(xmin='conf_low', xmax='conf_high'),
+    height=0.2
+  )
+  + geom_vline(
+    xintercept=0,
+    color='red', linetype='--'
+  )
+  + labs(
+    title='Effect on Sentiment (% Change)',
+    x='Percent Change',
+    y=''
+  )
+)
 ```
 
 The other model with region is tested for the results. 
