@@ -17,9 +17,10 @@ explain what is in the dataset
 brief descriptio of predictors and outcome 
 # Build 
 explain the build phase with the loss function , explain actions and unknowns 
-*project setup*
-import libraries
+
+
 ```{python}
+#import libraries
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -336,7 +337,7 @@ pl.DataFrame({
 
 # Feature Engineering 
 
-Snow_train data is split into train and test sets to avoid underfitting and overfitting for our model. Also the data is split between X and y to divide into predictors and outcome. Sentiment has been removed from predictors as it is the output.  The following block does the data split part. The date is in 80/20 split 
+Snow_train data is split into train and test sets to avoid underfitting and overfitting for our model. Also the data is split between X and y to divide into predictors and outcome. Sentiment has been removed from predictors as it is the output.  The following block does the data split part. The data is in 80/20 split.  
 
 ```{python}
 # Specify the design matrix and outcome
@@ -386,9 +387,10 @@ As log_sentiment has been created, its important to see the logged data and dist
 
 ```
 
-We want to add constant for X train data and convert it to pandas dataframe. 
-We fit the model with linear regression with y as outcome and x as predictors. The regression will run in this block and summary is presented below. All the coefficients and respective R squared values are calculated in this block. 
-The summary shows R-squared value of 0.995 and Adjusted RR-squared value of 0.995 as well. There is a small value of F-Statistic, so it shows predictors have some non zero co-efficients. 
+A constant is added for X train data and converted to pandas dataframe. 
+The model is fitted with linear regression with y as outcome and x as predictors. The regression will run in this block and summary is presented below. All the coefficients and respective R squared values are calculated in this block. 
+
+The summary shows R-squared value of 0.995 and Adjusted RR-squared value of 0.995 as well. There is a small value of F-Statistic, so it shows predictors have some non zero co-efficients and predictors would relate to the outcome. 
 
 ```{python}
 # Add constant for intercept 
@@ -400,13 +402,13 @@ fit_04.summary()
 
 ```
 
-We need to transform from the log scale. This block does this part. 
+We need to transform from the log scale to exponents. This block does this part. Briefly, the description of the Dataframe is: 
+
 - Parameters: gives the name of each predictor 
 - log_coef: the co efficient on the log scale 
 - p_value : statistical significance of each predictor 
 
-the values are stored in the coef_table variable which gives parameters, log co efficient values and p value of each predictor. another column called percent_change is added to get the exact percentage change values for each predictor. 
-As we have gotten the log coefficients, p values and percentage changes on this data after verifying all assumptions, we can now run analysis for our original data set 
+The values are stored in the coef_table variable which gives parameters, log co efficient values and p value of each predictor. Another column called percent_change is added to get the exact percentage change values for each predictor. Since we got the log coefficients, p values and percentage changes on this data after verifying all assumptions, we can now run analysis for our original data set 
 
 ```{python}
 # retrieve untransformed params
@@ -429,7 +431,8 @@ coef_table
 ```
 
 ### Running analysis for complete dataset after verifying assumptions on our data 
-We now want to select the snow predictors for our model and run the analysis on our complete dataset by comparing bayesian and frequentist models and selecting best model for our analysis. Snow_ols is from the original dataset and this is the variable name we will use for our analysis. 
+
+The snow predictors are selected for our model and the analysis is run on our complete dataset by comparing bayesian and frequentist models and selecting best model for our analysis. Snow_ols is from the original dataset and this variable name will be used for our analysis. 
 
 To start off, we keep only the outcome and predictors selected for our model. 
 
@@ -447,7 +450,7 @@ snow_ols = snow_data.select('sentiment', 'snow_making', 'days_open_last', 'runs'
 snow_ols.head()
 ```
 
-We now define and x and y values for our model and do the 80/20 split for our model . The sentiment has been excluded from X as it is the outcome. X includes all the other pre defined predictors. Test and train data is in 80/20 split. 
+X and y values are defined for our model and the data is split into 80/20 ratio. The sentiment has been excluded from X as it is the outcome. X includes all the other pre defined predictors. Test and train data is in 80/20 split. 
 
 ```{python}
 # Specify the outcome
@@ -461,7 +464,7 @@ X_train, X_test, y_train, y_test = train_test_split(
 ```
 
 
-We view the snow making historgram and find out that it is right skewed. We will later do log transformation for this predictor to avoid right skewed data.  
+The snow making historgram shows that it is right skewed. Later, the log transformation would be applied for this predictor to avoid right skewed data.  
 
 ```{python}
 from plotnine.scales import limits
@@ -476,7 +479,7 @@ scale_x_continuous(limits=[-100,1000])
 
 ```
 
-We also check the data for days open last yera, which seems to be ok 
+The data for days open last year is checked, which seems to be ok 
 ```{python}
 (
 ggplot(snow_ols, aes ( x = 'days_open_last'))
@@ -484,7 +487,7 @@ ggplot(snow_ols, aes ( x = 'days_open_last'))
 )
 ```
 
-we check the data for runs and found out that it is also right skewed. We will also do log transformation for this data and include log transformed values in our model  
+The data for runs is checked and it is also right skewed. Log transformation would be required for this data and log transformed values would be used in our model.   
 
 ```{python}
 (
@@ -493,9 +496,10 @@ ggplot(snow_ols, aes ( x = 'runs'))
 )
 ```
 
-snow making and runs are log transformed into log_snow_making and log_runs to avoid right skewed data. We create an x train with columns log_snow_making and log_runs and also an X_test similar to training data 
+snow making and runs are log transformed into log_snow_making and log_runs to avoid right skewed data. X train is created with columns log_snow_making and log_runs. Similarly, X_test is created with log transformed predictors.  
 
 ```{python}
+# create new list for coloumns to transform in X train and X test 
 log_cols = ['snow_making', 'runs']
 
 # Snow Making & runs are heavily right-skewed, log transformed to normalize
@@ -520,22 +524,53 @@ X_train.head()
 
 ```
 
-We will start our analysis for the initial model.  
-The r squared value for the model is 0.463 and Adjusted R squared for the model is 0.451. F statistics has a small value so the predictors have some significance. We also get the co-efficients which we will use next. 
+Sentiment is checked for the right skewed data and it is right skewed. Log transformation is applied to sentiment
 
-### Initial Model Fit with out dataset with train and test split  
+```{python}
+(
+ggplot(snow_ols, aes ( x = 'sentiment'))
++ geom_histogram(bins=10)
+)
+```
+
+```{python}
+# create y train for the model 
+y_train = (y_train
+  .with_columns((pl.col('sentiment') + 1).log().alias('log_sentiment'))
+  .select(pl.exclude('sentiment'))
+  .to_pandas()
+)
+
+
+# create y test for the model 
+y_test = (y_test
+  .with_columns((pl.col('sentiment') + 1).log().alias('log_sentiment'))
+  .select(pl.exclude('sentiment'))
+  .to_pandas()
+)
+```
+
+We will start our analysis for the initial model.  
+The r squared value for the model is 0.444 and Adjusted R squared for the model is 0.432. F statistics has a small value so the predictors have some significance. We also get the co-efficients which we will use next. 
+
+### Initial Model Fit without split  
 ```{python}
 # Add constant for intercept
 X_train = sm.add_constant(X_train)
 
 # Fit the model, Ordinary least squares is for the model fit 
-fit_05 = sm.OLS(y_train.to_pandas(), X_train).fit()
+fit_05 = sm.OLS(y_train, X_train).fit()
 fit_05.summary()
 
 ```
 
-We define a dataframe so that we can see the predictors, their co-efficient and P values. Comapring the log snow making vs log runs , we can see that log runs is more significant
+We define a dataframe so that we can see the predictors, their co-efficient and P values. Comapring the log snow making vs log runs co-efficients, we can see that log runs has more affect on the sentiment value. 
+
+P-value analysis: 
+The smaller p value for log runs suggests that it is statistically significant. The average snow has a barely significant affect but it is real. Snow making is  observed to have higher p value and is not significant. The p value of days open last year is high and the analysis suggests its not significant in this model. Overall, we can safely assume that number of runs does affect our sentiment output and will be tested out in different models later in the analysis. 
+
 ```{python}
+# create a dataframe to store predictor estimates and p values 
 pl.DataFrame({
   'term': fit_05.params.index.tolist(),
   'estimate': fit_05.params.values,
@@ -543,19 +578,19 @@ pl.DataFrame({
 }).filter(pl.col('term') != 'const')
 ```
 
-We now fit our Frequentist Model to the data set using the snow_train_2 variable and define fr_fit_01 for our model. Defined predictors are joined in the OLS model and results of the model are presented. 
-R-Squared is 0.463 and adjusted R-squrared is at 0.451. F-Statistic is minute however it suggests the predictors are significant. 
+We now fit our Frequentist Model to the data set and test our model. Defined predictors are joined in the OLS model and results of the model are presented. 
+R-Squared is 0.444 and adjusted R-squrared is at 0.432. F-Statistic is minute however it suggests the predictors are significant. 
 
 ```{python}
 # Combine the outcome and predictors into one training frame
-snow_train_2 = pl.concat([y_train, pl.from_pandas(X_train.drop(columns = 'const'))], how = 'horizontal_extend').to_pandas()
+snow_train_2 = pd.concat([y_train, X_train.drop(columns = 'const')], axis = 1)
 
 # define the predictors 
 predictors = ['days_open_last', 'log_runs', 'avgsnow', 'log_snow_making']
 
 # fit to the OLS model 
 fr_fit_01 = smf.ols(
-  'sentiment ~ ' + ' + '.join(predictors),
+  'log_sentiment ~ ' + ' + '.join(predictors),
   data = snow_train_2
 ).fit()
 
@@ -564,12 +599,12 @@ fr_fit_01.summary()
 
 ```
 
-We now fit Bayesian Model to our data with the predictors. 
+Bayesian Model is defined and fitted to our data with the predictors for the same dataset. 
 
 ```{python}
 # Specify a Bayesian linear regression
 ba_model = bmb.Model(
-  'sentiment ~ ' + ' + '.join(predictors),
+  'log_sentiment ~ ' + ' + '.join(predictors),
   data = snow_train_2
 )
 
@@ -582,7 +617,14 @@ Fitting the linear regression for our bayesian model.
 ba_fit = ba_model.fit(cores = 1) # used cores = 1 as the code got stuck on 4 cores 
 ```
 
-Summarize the bayesian model output, the means values and upper and lower bound values for each of the predictors is defined. 
+Summarize the bayesian model output, the means values and upper and lower bound values for each of the predictors is defined. From this result, we can see that we get the upper bound and lower bound values for each of the predictors for 95% certainity. From the data observed we can see that: 
+
+- Runs is above zero so it is satistically significant 
+- Average snow  is barely above zero so it is significant 
+- Days Open Last Year: It is statistically insignificant as it involves 0
+- Snow making is not significant as it crosses 0 
+
+After analysis for Bayersian and frequentist models, it is evident that number of runs is the most important predictor to estimate sentiment value. 
 
 ```{python}
 az.summary(ba_fit, ci_kind = 'hdi', ci_prob = 0.95)
@@ -590,22 +632,48 @@ az.summary(ba_fit, ci_kind = 'hdi', ci_prob = 0.95)
 
 # Evaluate 
 
+Region was used in the analysis as there are different regions which host ski resorts and it is possible that the region has impact on the model accuracy. East region was taken as a base value , and in the model analysis two different datasets are tested, one without region included and one with region. An estimate is generated whether to use without region dataset or with region dataset. Model with region shows the following results: 
+
+- R-Squared : 0.444
+- Adjusted R-Squared: 0.432
+- Without region MSE: 0.005488806440165671
+- Without region RMSE: 0.07408647946937194
+
 ### Model without region
 ```{python}
 # Model without region
+
+# Define the X and y 
 X = snow_data.select(['snow_making','days_open_last','runs','avgsnow'])
 y = snow_data.select('sentiment')
 
+# Split the data between train and test 
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# create new list for coloumns to transform in X train and X test 
+log_cols = ['snow_making', 'runs']
+
+# create x train for the model 
+X_train_log = (X_train
+  .with_columns((pl.col(col) + 1).log().alias(f'log_{col}') for col in log_cols)
+  .select(pl.exclude('snow_making', 'runs'))
+)
+
+# create x test for the model and use same log transformations for x test as of x train 
+
+X_test_log = (X_test
+  .with_columns((pl.col(col) + 1).log().alias(f'log_{col}') for col in log_cols)
+  .select(pl.exclude('snow_making', 'runs'))
+)
 
 y_train_log = y_train.with_columns((pl.col('sentiment') + 1).log().alias('log_sentiment')).select('log_sentiment')
 y_test_log  = y_test.with_columns((pl.col('sentiment') + 1).log().alias('log_sentiment')).select('log_sentiment')
 
-train_0 = pl.concat([y_train_log, X_train], how='horizontal').to_pandas()
+train_0 = pl.concat([y_train_log, X_train_log], how='horizontal').to_pandas()
 
-fit_0 = smf.ols('log_sentiment ~ snow_making + days_open_last+ runs + avgsnow', data=train_0).fit()
+fit_0 = smf.ols('log_sentiment ~ log_snow_making + days_open_last+ log_runs + avgsnow', data=train_0).fit()
 
-pred_0 = fit_0.predict(X_test.to_pandas())
+pred_0 = fit_0.predict(X_test_log.to_pandas())
 mse_0 = mean_squared_error(y_test_log.to_pandas(), pred_0)
 rmse_0 = root_mean_squared_error(y_test_log.to_pandas(), pred_0)
 
