@@ -5,18 +5,64 @@ format: html
 engine: jupyter
 jupyter: python3
 ---
-# Executive Summary 
-give an executive summary 
+# Executive Summary
+
+We analyzed guest sentiment (1-7 scale from OnTheSnow) on four resort attributes. Those being snow making acreage, the number of days open, number of runs, and average natural snowfall across U.S. resorts (OnTheSnow.com, 2019 season). This report tested region as a predictor. Detailed in the report, it was dropped, as it provided no significance to the model. In turn, the model was ran and determined the number of runs, with 95% confidence holding all other variables constant, increases +0.003 to +0.007 sentiment points per run. The amount of days open per season is smaller and less certain, with 0 to 0.005 pts increase per day, and snow making is  the weakest, but still significant. Snow making efforts deliver, with 95% confidence holding all other variables equal, 0 to +0.002 points increase per 1% increase coverage. This analysis determines that capital is better spent on terrain than snow making, and that snow making efforts should only be invested in when supporting terrain growth. 
+
 # Plan 
-explain the plan phase with the business objective and context 
-# Ideal Data 
-explain the ideal dataset 
-# Data 
-explain what is in the dataset 
-# Predictors & Outcome 
-brief descriptio of predictors and outcome 
-# Build 
-explain the build phase with the loss function , explain actions and unknowns 
+## Business Objective
+
+64% of weather stations report declining snow totals, 1970-2023. Utah's 15 major resorts saw a 26.5% skier-day decline in 2024-25. Natural snowfall is uncontrollable to the resort. Controllable levers predicted are runs, days open, and snowmaking investment.
+
+The business question: among the controllable attributes, which most improves the customer sentiment, and by how much? This ranks where a competitive dollar is best spent.
+
+
+# Ideal Data
+
+The ideal dataset for this question would be a resort-level panel covering the most recent season. This dataset would cover said resort's investment in runs, operating days, pass costs, pass prices, and snowmaking in ratio with it's acerage. It would also include sentiment measured by the resort, given to a random sample that is representative of the population. That would let this analysis separate the causal effect of a resort's choices from influential factors like brand reputation, price, and the weather itself, and would let the function be expressed in dollars based on sentiment, and guage how the relationship in sentiment increases can directly increase or decrease profits.
+
+# Data
+
+Source: OnTheSnow.com scrape, 330 U.S. resorts, 2019 season. https://www.kaggle.com/datasets/sijialai/onthesnow.
+
+The final dataset covers the average snowfall (in), runs (count), days open last year (count), snowmaking coverage (acres), sentiment rating (1-7 scale), state collapsed to 5 regions (East/Midwest/Mountain/West/Other) for group-size viability. n = 240 after dropping rows missing any of the core fields.
+
+The sentiment rating was scraped from OnTheSnow.com in addition to the original Kaggle dataset. 
+
+| Variable | Mean | Std. dev. | Min | Max |
+|---|---|---|---|---|
+| Snow making (acres) | 188.8 | 277.8 | 2 | 3,379 |
+| Days open last year | 115.8 | 33.1 | 3 | 243 |
+| Runs | 52.9 | 50.2 | 3 | 341 |
+| Average snowfall (in.) | 174.1 | 128.7 | 18 | 669 |
+| Sentiment (1-7) | 3.97 | 0.61 | 2.5 | 5.5 |
+
+: Resort attributes after cleaning (n = 240)
+
+Ideal data vs. real data: 
+Compared to the ideal dataset described above, this dataset falls short in a couple of ways. First, it is data gathered from the 2019 season rather than as recent as possible, 2025-26. Second, we have no cost or pricing data, so we can rank attributes by their association with sentiment but cannot yet compute a true return on investment. 
+
+# Predictors & Outcome
+
+**Outcome.** Sentiment: OnTheSnow's aggregated customer sentiment rating for the resort, on a 1-7 scale (7 = most positive). This is a derived measure of guest satisfaction rather than a direct survey.
+
+**Predictors.**
+
+- snow_making: acres of terrain covered by artificial snowmaking equipment.
+- days_open_last: number of days the resort operated last season.
+- runs: number of named runs/trails at the resort.
+- avgsnow: average natural snowfall (inches).
+- region: East, Midwest, Mountain, West, or Other, derived from the resort's state. Included as a candidate for control, later removed as a predictor as it doesn't provide clarity or model fit. 
+
+# Build
+
+**Loss function.** OLS and a Bayesian linear model both minimize expected squared error on log-sentiment:
+
+Standard for a continuous, roughly symmetric outcome. It is important that this analysis utilzes a function that penalizes large misses since a badly mis-predicted resort yields bad operational advice.
+
+**Utility function.** Operator allocates budget across controllable levers $a = (\Delta\text{runs}, \Delta\text{days\_open\_last}, \Delta\text{snow\_making})$ to maximize:
+
+$$U(a) = \beta_{runs} \cdot \Delta\text{runs} + \beta_{days\_open\_last} \cdot \Delta\text{days\_open\_last} + \beta_{snow\_making} \cdot \Delta\text{snow\_making}$$
 
 
 ```{python}
@@ -62,7 +108,7 @@ snow_data = (snow_data
 
 The regions are created for each state to combine different states & cities.  
 ```{python}
-#create a region , explain why we created regions 
+#create a region. See visualizations below. 
 snow_data = snow_data.with_columns(
     pl.when(
         pl.col("city").is_in([
@@ -97,6 +143,41 @@ snow_data = snow_data.with_columns(
     .otherwise(pl.lit("Other"))
     .alias("region")
 )
+```{python}
+# Count observations by city/state and sort
+city_counts = snow_data["city"].value_counts().sort("count")
+
+# Create ordered column chart for city/state counts
+(ggplot(city_counts, aes(x='reorder(city, count)', y='count'))
+  + geom_col(fill='steelblue')
+  + coord_flip()
+  + labs(
+    title='Number of Observations by City/State',
+    subtitle='Distribution Prior to Regional Grouping',
+    x='City / State',
+    y='Count of Observations'
+  )
+)
+```
+
+```{python}
+# Count observations by region and sort
+region_counts = snow_data["region"].value_counts().sort("count", descending=True)
+
+# Create ordered column chart for region counts
+(ggplot(region_counts, aes(x='reorder(region, -count)', y='count'))
+  + geom_col(fill='steelblue')
+  + labs(
+    title='Number of Observations by Region',
+    subtitle='Consolidated Regional Distribution',
+    x='Region',
+    y='Count of Observations'
+  )
+)
+```
+
+By creating a Region column, we can more accurately measure location, as each section has a greater number of observations to pull from. Having more columns than rows in a dataset can disrupt a linear regression.
+
 
 #drop city column
 snow_data = snow_data.drop("city")
