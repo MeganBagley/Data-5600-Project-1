@@ -338,7 +338,7 @@ pl.DataFrame({
 
 ```
 
-## Feature Engineering 
+# Feature Engineering 
 
 we will split snow_train data into train and test sets to avoid underfitting and overfitting for our model. Also the data is split between X and y to  
 The following block does the data split part. The date is in 80/20 split 
@@ -529,7 +529,7 @@ X_train.head()
 We will start our analysis for the initial model.  
 The r squared value for the model is 0.463 and Adjusted R squared for the model is 0.451. F statistics has a small value so the predictors have some significance. We also get the co-efficients which we will use next. 
 
-## Initial Model Fit with out dataset with train and test split  
+### Initial Model Fit with out dataset with train and test split  
 ```{python}
 # Add constant for intercept
 X_train = sm.add_constant(X_train)
@@ -540,7 +540,7 @@ fit_05.summary()
 
 ```
 
-We define a dataframe so that we can see the predictors, their co-efficient and P values
+We define a dataframe so that we can see the predictors, their co-efficient and P values. Comapring the log snow making vs log runs , we can see that log runs is more significant
 ```{python}
 pl.DataFrame({
   'term': fit_05.params.index.tolist(),
@@ -549,24 +549,28 @@ pl.DataFrame({
 }).filter(pl.col('term') != 'const')
 ```
 
- We now fit our Frequentist Model to the data set using the snow_train_2 variable and define fr_fit_01 for our model 
+We now fit our Frequentist Model to the data set using the snow_train_2 variable and define fr_fit_01 for our model. Defined predictors are joined in the OLS model and results of the model are presented. 
+R-Squared is 0.463 and adjusted R-squrared is at 0.451. F-Statistic is minute however it suggests the predictors are significant. 
 
 ```{python}
 # Combine the outcome and predictors into one training frame
 snow_train_2 = pl.concat([y_train, pl.from_pandas(X_train.drop(columns = 'const'))], how = 'horizontal_extend').to_pandas()
 
+# define the predictors 
 predictors = ['days_open_last', 'log_runs', 'avgsnow', 'log_snow_making']
 
+# fit to the OLS model 
 fr_fit_01 = smf.ols(
   'sentiment ~ ' + ' + '.join(predictors),
   data = snow_train_2
 ).fit()
 
+# display the model results 
 fr_fit_01.summary()
 
 ```
 
-We now fit Bayesian Model to our data 
+We now fit Bayesian Model to our data with the predictors. 
 
 ```{python}
 # Specify a Bayesian linear regression
@@ -575,25 +579,16 @@ ba_model = bmb.Model(
   data = snow_train_2
 )
 
-# Specify priors
-priors_dict = {
-  'Intercept': bmb.Prior('Uniform', lower = -100, upper = 100),
-  **{term: bmb.Prior('Uniform', lower = -100, upper = 100) for term in predictors},
-  'sigma': bmb.Prior('Exponential', lam = 1)
-}
-
-ba_model.set_priors(priors = priors_dict)
-ba_model
 ```
 
-Fitting the linear regression for our bayesian model 
+Fitting the linear regression for our bayesian model. 
 
 ```{python}
 # Fit a Bayesian linear regression
 ba_fit = ba_model.fit(cores = 1) # used cores = 1 as the code got stuck on 4 cores 
 ```
 
-Summarize the bayesian model output 
+Summarize the bayesian model output, the means values and upper and lower bound values for each of the predictors is defined. 
 
 ```{python}
 az.summary(ba_fit, ci_kind = 'hdi', ci_prob = 0.95)
@@ -601,7 +596,7 @@ az.summary(ba_fit, ci_kind = 'hdi', ci_prob = 0.95)
 
 # Evaluate 
 
-## Model without region
+### Model without region
 ```{python}
 # Model without region
 X = snow_data.select(['snow_making','days_open_last','runs','avgsnow'])
@@ -625,7 +620,7 @@ print("Without region MSE:", mse_0)
 print("Without region RMSE:", rmse_0)
 ```
 
-## Model with region
+### Model with region
 ```{python}
 # Model with region
 snow_train_3 = (snow_data
