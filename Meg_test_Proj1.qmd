@@ -716,6 +716,7 @@ az.summary(ba_fit, ci_kind = 'hdi', ci_prob = 0.95)
 
 Region was used in the analysis as there are different regions which host ski resorts and it is possible that the region has impact on the model accuracy. East region was taken as a base value , and in the model analysis two different datasets are tested, one without region included and one with region. An estimate is generated whether to use without region dataset or with region dataset. Model with region shows the following results: 
 
+Without Region Results: 
 - R-Squared : 0.444
 - Adjusted R-Squared: 0.432
 - Without region MSE: 0.005488806440165671
@@ -822,7 +823,16 @@ The other model with region is tested for the results.
 
 ### Model with region
 
-The dataset with model with region is analyzed for the results. 
+The dataset with model with region is analyzed for the results. Following are the results for the model: 
+R - Squared : 0.451 
+Adjusted R - Squared : 0.427
+F-statistic : small but it is indictive of predictors having significance 
+Mean squared error : 0.005447742344244023
+Root mean squared error : 0.07380882294308738
+
+### Interpretation of Results
+The mean squarted error and root mean squared errors have less than 0.1% difference between with region and without region models. However, R sqaured adjusted decreased for with region to 0.427 as compared to without region which is at 0.432. Since without region model has higher adjusted R squared, that model is selected to run our analysis. 
+R square increased by increasing the prediction region for with region model, but that is an expected result. 
 ```{python}
 # Model with region
 
@@ -905,14 +915,9 @@ snow_train = (pl.from_pandas(train_01)
 
 ```
 
-# Interpretation of Results
-Region Adjusted R squared is 0.424, while removing region brings adjusted R squared to 0.428. This is already telling, as the removal of parameters actually increased the R squared. Typically we account for a slight increase with more parameters, illustrating a stronger model fit. 
-
-The model RMSE without region is 0.075, while the RMSE including region is 0.074. This change is small
-
-## analyse for decision theoratic fit 
-
 # Predict 
+
+The model without region is finalized, and this code block is used to predict results for the model. 
 
 ## Drop Region run full model
 ```{python}
