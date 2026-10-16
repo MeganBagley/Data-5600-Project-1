@@ -34,7 +34,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error, root_mean_squared_error
 ```
 
-import dataset file, the snow_data is the orignial dataset that is used in the analysis as is 
+This module imports the dataset file.  The snow_data is the orignial dataset that is used in the analysis. 
 ```{python}
 # read the data file 
 snow_data = pl.read_excel(
@@ -43,7 +43,7 @@ snow_data = pl.read_excel(
 
 ```
 
-rename the columns and to use as predictors 
+The columns are renamed to use as predictors.  
 
 ```{python}
 #rename columns
@@ -59,7 +59,7 @@ snow_data = (snow_data
 )
 ```
 
-create regions for each state to combine different states & cities 
+The regions are created for each state to combine different states & cities.  
 ```{python}
 #create a region , explain why we created regions 
 snow_data = snow_data.with_columns(
@@ -110,10 +110,10 @@ snow_data["region"].value_counts().sort("count")
 ```
 
 ## Exploring data with visualizations
-Explore data and understand its limitations. We are trying to verify our baseline assumption that outcome of sentiment depends upon selected predictors.   
-
-Create visualizations for snowmaking vs sentiment 
+This section demonstrates exploring data and understanding its limitations. This section verifies our baseline assumption that outcome of sentiment depends upon selected predictors.   
+ 
 ```{python}
+#Create visualizations for snowmaking vs sentiment
 from plotnine import geom_smooth
 from plotnine import geom_point
 (ggplot(snow_data, aes(x='sentiment', y='avgsnow'))
@@ -128,9 +128,8 @@ from plotnine import geom_point
 )
 ```
 
-Create visualizations for Snow Making vs sentiment , y axis is adjusted to take few outliers to see clear graph 
-
 ```{python}
+# Create visualizations for Snow Making vs sentiment , y axis is adjusted to take few outliers to see clear graph 
 from plotnine import coord_cartesian
 from plotnine import theme_minimal
 (ggplot(snow_data, aes(x='sentiment', y='snow_making'))
@@ -146,9 +145,8 @@ from plotnine import theme_minimal
 )
 ```
 
-create visualization for days open last year vs sentiment 
-
 ```{python}
+#create visualization for days open last year vs sentiment 
 (ggplot(snow_data, aes(x='sentiment', y='days_open_last'))
   +geom_jitter(alpha=0.25, width = 0.2, height = 0)
   + geom_smooth(method='lowess', color = 'red')
@@ -161,9 +159,8 @@ create visualization for days open last year vs sentiment
 )
 ```
 
-visualization for sentiment vs runs 
-
 ```{python}
+#visualization for sentiment vs runs 
 (ggplot(snow_data, aes(x='sentiment', y='runs'))
   +geom_jitter(alpha=0.25, width = 0.2, height = 0)
   + geom_smooth(method='lowess', color = 'red')
@@ -176,15 +173,15 @@ visualization for sentiment vs runs
 )
 ```
 
-Our underlying assumption that sentiment is related to predictors is validated after observing these charts. Although, this is not an accurate way to analyse corresponding affects of predictors on output, it verifies our underlying assumption of the business problem that sentiment depends upon snow making, average snow fall, runs and number of days open last year. 
+Our underlying assumption that sentiment is related to predictors is validated after observing these charts. Although, this is not an accurate way to analyse corresponding affects of predictors on output,however it verifies our underlying assumption of the business problem that sentiment depends upon snow making, average snow fall, runs and number of days open last year. 
 
 # Fit 
 The first model fitting is done in this section of the report. 
 East region has been dropped as it had the most number of ski resorts. Hence, east region is taken as a baseline reference for our model. We have fitted ordinary least squares model to fit with out predictors. The residuals and fitted values are saved to our data frame under observations. We are trying to run predictions on our model later to compare different models in our dataset. 
 
-We are fitting  OLS and collecting residuals for the assumption verfications in the next block.  We dummy code the predictors so that we can drop the eastern region as it has the most number of ski resorts and will be used as a baseline in our model. We will see later that model comparison is done with and without regions. 
+The model fitted is OLS and residuals are collected for the assumption verfications in the next block.  Predictors are dummy coded so that the eastern region can be dropped as it has the most number of ski resorts and will be used as a baseline in our model. Later the model comparison will be done with and without regions. 
 
-We define a new variable snow train and start our analysis for the model. The output is sentiment and input predictors are all regions except east , snow making, days open last year, runs, and average snow fall. We add 1 to the equation not to have 0 values inside the model. Snow train stores all the residuals and fitted values of our model and later will be used for assumptions verification. 
+A new variable snow train is defined and the analysis for the model is initiated. The output is sentiment and input predictors are all regions except east region, snow making, days open last year, number of runs, and average snow fall per season. We add 1 to the equation not to have 0 values inside the model to avoid log(0) scenarios in the calculation. Snow train stores all the residuals and fitted values of our model and later will be used for assumptions verification. 
 
 ```{python}
 # Dummy code discrete predictors- used east as reference case becuase it has the most entries
@@ -207,7 +204,7 @@ snow_train = (snow_train
 )
 ```
 
-observe the snow_train data 
+The snow_train data is observed and a new column observation is added into the dataframe. It houses all 240 observations on our data including our predictors, residuals and fitted values. This data will be used for our initial assessment of the model including the assumption verifications. 
 
 ```{python}
 # observe the snow train data with observation index and all residuals and fitted values 
@@ -216,12 +213,11 @@ snow_train
 
 # Reconcile 
 
-To reconcile, we are verifying all assumptions to fit to our model. All the assumptions have been verified to fit to the model to have accurate analysis. 
+To reconcile, all the assumptions have been verified to fit to the model to have accurate analysis. The details for each verified assumption is provided below. 
 
 ## Satifying the assumptions 
-*exercise_7: exploring residuals*
 
-As observed in our chart, the linearity assumption has been fullfilled by comparing the residuals and the fitted values in our model. We get a nice linear visual for our data. 
+As observed in our chart, the linearity assumption has been fullfilled by comparing the residuals and the fitted values in our model. A linear visual for our data verifying assumption. 
 
 ### LINEARITY:
 ```{python}
@@ -287,7 +283,7 @@ The data points for fitted vs residuals are not in a funnel shape; which suggest
 )
 ```
 
-Normality assumption has been fullfilled as the error is normally distributed and follows the line. 
+Normality assumption has been fullfilled as the error is normally distributed and follows the line in the Q-Q plot. 
 
 ### NORMALITY:
 ```{python}
@@ -307,8 +303,8 @@ Normality assumption has been fullfilled as the error is normally distributed an
 )
 ```
 
-All the predictors show less than 10 VIF value, so our included predictors satisfy the multicollinearity assumptions. 
-All the VIF values are much less than below 10, so we can safely assume that multicolinearity assumption is satisfied. 
+All the predictors show less than 10 VIF value, so our included predictors satisfy the multicollinearity assumptions. All the VIF values are much less than below 10, so we can safely assume that multicolinearity assumption has been satisfied. 
+
 ### MULTICOLINEARITY / IDENTIFIABILITY:
 ```{python}
 from statsmodels.stats.outliers_influence import variance_inflation_factor
@@ -340,9 +336,8 @@ pl.DataFrame({
 
 # Feature Engineering 
 
-we will split snow_train data into train and test sets to avoid underfitting and overfitting for our model. Also the data is split between X and y to  
-The following block does the data split part. The date is in 80/20 split 
-*exercise_8: training splits*
+Snow_train data is split into train and test sets to avoid underfitting and overfitting for our model. Also the data is split between X and y to  The following block does the data split part. The date is in 80/20 split 
+
 ```{python}
 # Specify the design matrix and outcome
 X = snow_train.select(pl.exclude('sentiment'))
