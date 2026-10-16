@@ -355,7 +355,7 @@ snow_train["sentiment"].describe()
 snow_train["sentiment"].value_counts().sort("sentiment") 
 ```
 
-The sentiment is plotted for the bins to see whether sentiment is right skewed. As the graphs shows that the sentiment is right skewed, we will take log of this data to avoid right skewed data.
+The sentiment is plotted for the bins to see whether sentiment is right skewed. As the graphs shows that the sentiment is centered around 4, we still take log of this data to interpret data in percentage terms. 
 
 ```{python}
 (ggplot(y_train, aes(x = 'sentiment'))
@@ -377,7 +377,7 @@ y_train = (y_train
 
 ```
 
-As log_sentiment has been created, its important to see the logged data and distribution across bins. The log resolves the right skewed data problem and can be observed to be in much closer bin sizes. 
+As log_sentiment has been created, its important to see the logged data and distribution across bins. The log data can be observed to be in much closer bin sizes. 
 
 ```{python}
 #plot the historgram for log_sentiment 
@@ -524,7 +524,7 @@ X_train.head()
 
 ```
 
-Sentiment is checked for the right skewed data and it is right skewed. Log transformation is applied to sentiment
+Sentiment  is log transformaed for interpretation in percentage terms 
 
 ```{python}
 (
