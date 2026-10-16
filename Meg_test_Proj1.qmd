@@ -665,22 +665,32 @@ X_test_log = (X_test
   .with_columns((pl.col(col) + 1).log().alias(f'log_{col}') for col in log_cols)
   .select(pl.exclude('snow_making', 'runs'))
 )
-
+#define y test and y train with log transformed output 
 y_train_log = y_train.with_columns((pl.col('sentiment') + 1).log().alias('log_sentiment')).select('log_sentiment')
 y_test_log  = y_test.with_columns((pl.col('sentiment') + 1).log().alias('log_sentiment')).select('log_sentiment')
 
+# join the data for training 
 train_0 = pl.concat([y_train_log, X_train_log], how='horizontal').to_pandas()
 
+#fit the model 
 fit_0 = smf.ols('log_sentiment ~ log_snow_making + days_open_last+ log_runs + avgsnow', data=train_0).fit()
 
+#use the trained model to predict the outcome 
 pred_0 = fit_0.predict(X_test_log.to_pandas())
+
+# show the mean squared error for the model
 mse_0 = mean_squared_error(y_test_log.to_pandas(), pred_0)
+
+# show the root mean squared error for the model
 rmse_0 = root_mean_squared_error(y_test_log.to_pandas(), pred_0)
 
+#print out summary results and error values 
 print(fit_0.summary())
 print("Without region MSE:", mse_0)
 print("Without region RMSE:", rmse_0)
 ```
+
+The other model with region is tested for the results. 
 
 ### Model with region
 ```{python}
@@ -713,7 +723,7 @@ print(fit_01.summary())
 print("With region MSE:", mse_01)
 print("With region RMSE:", rmse_01)
 
-# residuals for existing diagnostics (I used AI for this portion, could be worth a look over)
+# residuals for existing diagnostics
 snow_train = (pl.from_pandas(train_01)
   .with_columns(residuals_01 = pl.Series(fit_01.resid))
   .with_columns(fitted_values_01 = pl.Series(fit_01.fittedvalues))
