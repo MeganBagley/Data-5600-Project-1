@@ -695,6 +695,19 @@ print("Without region RMSE:", rmse_0)
 #### Communicating the model result without region 
 The confidence intervals are communicated for the model. As observed, the most significant predictor is number of runs, followed by snow making, whereas days open last year has slight significance. Affect of Averege snow fall is almost near zero in this model.  
 
+The results are interpreted as: 
+
+Runs : The range is between 3.8% to 9.9 % with mean value at 6.8%. It means that 1% increase in runs increases 6.8% increase in sentiment. This is the most significant factor. 
+
+Snow Making: The interval is between 0.4% - 3% with mean at 1.3%. Each percentage increase in snow making results in 1.3% increase in sentiment. 
+
+Days Open Last Year: The interval is between 0.02% to 0.09% with mean at 0.04%. Each additional day open results in 0.04% sentiment increase. 
+
+Average snowfall: Interval is between 0% - 0.03% with mean at 0.02%. Each additional inch in snowfall results in 0.02% increase in sentiment. 
+
+The number of runs is the clear driver of sentiment, as 1% increase in runs accounts for 6.8% increas in sentiment. Snow making and days open show positive trends but are less significant. The resorts should prioritize on increasing the number of runs for their investments. 
+
+
 ```{python}
 
 # Construct confidence interval data frame with percent change
