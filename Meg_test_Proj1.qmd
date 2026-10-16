@@ -176,14 +176,15 @@ visualization for sentiment vs runs
 )
 ```
 
-Our underlying assumption that sentiment is related to predictors is validated after observing these charts. Although, this is not an accurate way to see corresponding affects of predictors on output, it verifies our underlying assumption of the business problem that sentiment depends upon snow making, average snow fall, runs and number of days open. 
+Our underlying assumption that sentiment is related to predictors is validated after observing these charts. Although, this is not an accurate way to analyse corresponding affects of predictors on output, it verifies our underlying assumption of the business problem that sentiment depends upon snow making, average snow fall, runs and number of days open last year. 
 
 # Fit 
-The model fitting is done in this section of the report. 
-East region has been dropped as it had the most number of ski resorts. Hence, east region is taken as a baseline reference for our model. We have fitted ordinary least squares model to fit with out predictors. The residuals and fitted values are saved to our data frame under observations. 
+The first model fitting is done in this section of the report. 
+East region has been dropped as it had the most number of ski resorts. Hence, east region is taken as a baseline reference for our model. We have fitted ordinary least squares model to fit with out predictors. The residuals and fitted values are saved to our data frame under observations. We are trying to run predictions on our model later to compare different models in our dataset. 
 
+We are fitting  OLS and collecting residuals for the assumption verfications in the next block.  We dummy code the predictors so that we can drop the eastern region as it has the most number of ski resorts and will be used as a baseline in our model. We will see later that model comparison is done with and without regions. 
 
-fit OLS and collect residuals for the assumption verfications.  We dummy code the predictors so that we can drop the eastern region as it has the most number of ski resorts and will be used as a baseline in our model. We will see later that model comparison is done with and without regions. 
+We define a new variable snow train and start our analysis for the model. The output is sentiment and input predictors are all regions except east , snow making, days open last year, runs, and average snow fall. We add 1 to the equation not to have 0 values inside the model. Snow train stores all the residuals and fitted values of our model and later will be used for assumptions verification. 
 
 ```{python}
 # Dummy code discrete predictors- used east as reference case becuase it has the most entries
@@ -206,14 +207,21 @@ snow_train = (snow_train
 )
 ```
 
+observe the snow_train data 
+
+```{python}
+# observe the snow train data with observation index and all residuals and fitted values 
+snow_train
+```
+
 # Reconcile 
 
-To reconcile, we are verifying all assumptions to fit to our model. All the assumptions are verified to fit to the model to have accurate analysis. 
+To reconcile, we are verifying all assumptions to fit to our model. All the assumptions have been verified to fit to the model to have accurate analysis. 
 
 ## Satifying the assumptions 
 *exercise_7: exploring residuals*
 
-As observed in our chart, the linearity assumption has been fullfilled by comparing the residuals and the fitted values in our model. 
+As observed in our chart, the linearity assumption has been fullfilled by comparing the residuals and the fitted values in our model. We get a nice linear visual for our data. 
 
 ### LINEARITY:
 ```{python}
@@ -239,7 +247,7 @@ As observed in our chart, the linearity assumption has been fullfilled by compar
 )
 ```
 
-Independence assumption has been verified in the data as there is no visible trend in the residuals vs obseration plot. All the points are randomly distributed for our data. 
+Independence assumption has been verified in the data as there is no visible trend in the residuals vs obseration plot. All the points are randomly distributed for our data and there is no visible trend. 
 
 ### INDEPENDENCE:
 ```{python}
@@ -300,7 +308,7 @@ Normality assumption has been fullfilled as the error is normally distributed an
 ```
 
 All the predictors show less than 10 VIF value, so our included predictors satisfy the multicollinearity assumptions. 
-
+All the VIF values are much less than below 10, so we can safely assume that multicolinearity assumption is satisfied. 
 ### MULTICOLINEARITY / IDENTIFIABILITY:
 ```{python}
 from statsmodels.stats.outliers_influence import variance_inflation_factor
@@ -332,7 +340,7 @@ pl.DataFrame({
 
 ## Feature Engineering 
 
-we will split data into train and test sets to avoid underfitting and overfitting for our model 
+we will split snow_train data into train and test sets to avoid underfitting and overfitting for our model. Also the data is split between X and y to  
 The following block does the data split part. The date is in 80/20 split 
 *exercise_8: training splits*
 ```{python}
@@ -344,7 +352,7 @@ y = snow_train.select('sentiment')
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2, random_state = 42)
 ```
 
-The snow train data is analyzed to see the count of sentiment values as well as count against each value to understand more about the training data. 
+The snow train data is analyzed to see the count of sentiment values as well as count against each value to understand more about the sentiment data. 
 
 ```{python}
 snow_train["sentiment"].describe()
@@ -386,6 +394,7 @@ As log_sentiment has been created, its important to see the logged data and dist
 
 We want to add constant for X train data and convert it to pandas dataframe. 
 We fit the model with linear regression with y as outcome and x as predictors. The regression will run in this block and summary is presented below. All the coefficients and respective R squared values are calculated in this block. 
+The summary shows R-squared value of 0.995 and Adjusted RR-squared value of 0.995 as well. There is a small value of F-Statistic, so it shows predictors have some non zero co-efficients. 
 
 ```{python}
 # Add constant for intercept 
@@ -403,7 +412,7 @@ We need to transform from the log scale. This block does this part.
 - p_value : statistical significance of each predictor 
 
 the values are stored in the coef_table variable which gives parameters, log co efficient values and p value of each predictor. another column called percent_change is added to get the exact percentage change values for each predictor. 
-
+As we have gotten the log coefficients, p values and percentage changes on this data after verifying all assumptions, we can now run analysis for our original data set 
 ```{python}
 # retrieve untransformed params
 coef_table = pl.DataFrame({
@@ -424,7 +433,8 @@ coef_table = (
 coef_table
 ```
 
-We now want to select the snow predictors for our model and run the analysis on our complete dataset by comparing bayesian and frequentist models and selecting best model for our analysis. 
+### Running analysis for complete dataset after verifying assumptions on our data 
+We now want to select the snow predictors for our model and run the analysis on our complete dataset by comparing bayesian and frequentist models and selecting best model for our analysis. Snow_ols is from the original dataset and this is the variable name we will use for our analysis. 
 
 To start off, we keep only the outcome and predictors selected for our model. 
 
@@ -442,7 +452,7 @@ snow_ols = snow_data.select('sentiment', 'snow_making', 'days_open_last', 'runs'
 snow_ols.head()
 ```
 
-We now define and x and y values for our model and do the 80/20 split for our model 
+We now define and x and y values for our model and do the 80/20 split for our model . The sentiment has been excluded from X as it is the outcome. X includes all the other pre defined predictors. Test and train data is in 80/20 split. 
 ```{python}
 # Specify the outcome
 X = snow_ols.select(pl.exclude('sentiment'))
@@ -454,7 +464,8 @@ X_train, X_test, y_train, y_test = train_test_split(
 )
 ```
 
-We view the snow making historgram and find out that it is right skewed. We will take log for this predictor to avoid right skewed data 
+
+We view the snow making historgram and find out that it is right skewed. We will later do log transformation for this predictor to avoid right skewed data.  
 
 ```{python}
 from plotnine.scales import limits
@@ -469,7 +480,7 @@ scale_x_continuous(limits=[-100,1000])
 
 ```
 
-We also check the data for days open last which seems to be ok 
+We also check the data for days open last yera, which seems to be ok 
 ```{python}
 (
 ggplot(snow_ols, aes ( x = 'days_open_last'))
@@ -477,7 +488,7 @@ ggplot(snow_ols, aes ( x = 'days_open_last'))
 )
 ```
 
-we check the data for runs and found out that it is also right skewed 
+we check the data for runs and found out that it is also right skewed. We will also do log transformation for this data and include log transformed values in our model  
 
 ```{python}
 (
@@ -486,8 +497,7 @@ ggplot(snow_ols, aes ( x = 'runs'))
 )
 ```
 
-
-snow making and runs are log transformed into log_snow_making and log_runs to avoid right skewed data. We create an x train with columns log_snow_making and log_runs 
+snow making and runs are log transformed into log_snow_making and log_runs to avoid right skewed data. We create an x train with columns log_snow_making and log_runs and also an X_test similar to training data 
 
 ```{python}
 log_cols = ['snow_making', 'runs']
@@ -514,11 +524,10 @@ X_train.head()
 
 ```
 
-Start our analysis for the initial model 
-The r squared value for the model is 0.463 and Adjusted R squared for the model is 0.451. 
+We will start our analysis for the initial model.  
+The r squared value for the model is 0.463 and Adjusted R squared for the model is 0.451. F statistics has a small value so the predictors have some significance. We also get the co-efficients which we will use next. 
 
-
-## Initial model 
+## Initial Model Fit with out dataset with train and test split  
 ```{python}
 # Add constant for intercept
 X_train = sm.add_constant(X_train)
@@ -529,6 +538,7 @@ fit_05.summary()
 
 ```
 
+We define a dataframe so that we can see the predictors, their co-efficient and P values
 ```{python}
 pl.DataFrame({
   'term': fit_05.params.index.tolist(),
@@ -537,17 +547,17 @@ pl.DataFrame({
 }).filter(pl.col('term') != 'const')
 ```
 
- Frequentist Model
+ We now fit our Frequentist Model to the data set using the snow_train_2 variable 
 
 ```{python}
 # Combine the outcome and predictors into one training frame
-snow_train = pl.concat([y_train, pl.from_pandas(X_train.drop(columns = 'const'))], how = 'horizontal_extend').to_pandas()
+snow_train_2 = pl.concat([y_train, pl.from_pandas(X_train.drop(columns = 'const'))], how = 'horizontal_extend').to_pandas()
 
 predictors = ['days_open_last', 'log_runs', 'avgsnow', 'log_snow_making']
 
 fr_fit = smf.ols(
   'sentiment ~ ' + ' + '.join(predictors),
-  data = snow_train
+  data = snow_train_2
 ).fit()
 
 fr_fit.summary()
@@ -560,7 +570,7 @@ Bayesian Model
 # Specify a Bayesian linear regression
 ba_model = bmb.Model(
   'sentiment ~ ' + ' + '.join(predictors),
-  data = snow_train
+  data = snow_train_2
 )
 
 # Specify priors
@@ -612,7 +622,7 @@ print("Without region RMSE:", rmse_0)
 ## Model with region
 ```{python}
 # Model with region
-snow_train = (snow_data
+snow_train_3 = (snow_data
   .to_dummies(columns=['region'], drop_first=False)
   .select(pl.exclude('region_East'))
 )
@@ -620,8 +630,8 @@ snow_train = (snow_data
 region_predictors = ['snow_making','days_open_last','runs','avgsnow',
                       'region_Midwest','region_Mountain','region_Other','region_West']
 
-X = snow_train.select(region_predictors)
-y = snow_train.select('sentiment')
+X = snow_train_3.select(region_predictors)
+y = snow_train_3.select('sentiment')
 
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
