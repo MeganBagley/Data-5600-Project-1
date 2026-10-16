@@ -733,7 +733,7 @@ priors_dict = {
   'sigma': bmb.Prior('Exponential', lam=1)
 }
 ba_model.set_priors(priors=priors_dict)
-ba_fit = ba_model.fit()
+ba_fit = ba_model.fit(cores=1)
 az.summary(ba_fit, ci_kind='hdi', ci_prob=0.95)
 
 ba_model.predict(ba_fit, kind='response')
