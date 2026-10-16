@@ -336,7 +336,7 @@ pl.DataFrame({
 
 # Feature Engineering 
 
-Snow_train data is split into train and test sets to avoid underfitting and overfitting for our model. Also the data is split between X and y to  The following block does the data split part. The date is in 80/20 split 
+Snow_train data is split into train and test sets to avoid underfitting and overfitting for our model. Also the data is split between X and y to divide into predictors and outcome. Sentiment has been removed from predictors as it is the output.  The following block does the data split part. The date is in 80/20 split 
 
 ```{python}
 # Specify the design matrix and outcome
@@ -347,13 +347,12 @@ y = snow_train.select('sentiment')
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2, random_state = 42)
 ```
 
-The snow train data is analyzed to see the count of sentiment values as well as count against each value to understand more about the sentiment data. 
+The snow train data is analyzed to see the count of sentiment values as well as count against each value to understand more about the sentiment data. 22 Different sentiment values are found in our dataset. 
 
 ```{python}
 snow_train["sentiment"].describe()
 snow_train["sentiment"].value_counts().sort("sentiment") 
 ```
-
 
 The sentiment is plotted for the bins to see whether sentiment is right skewed. As the graphs shows that the sentiment is right skewed, we will take log of this data to avoid right skewed data.
 
@@ -363,7 +362,7 @@ The sentiment is plotted for the bins to see whether sentiment is right skewed. 
 )
 ```
 
-The y train is defined with log of sentiment in this block with a new column log_sentiment and histogram plot of the log_sentiment is provided to see the data again. 1 is added to the formula as to avoid log(0). The original column with the name sentiment is dropped and the new column log_sentiment is used for y train. 
+The y train is defined with log of sentiment in this block with a new column log_sentiment and histogram plot of the log_sentiment is provided to see the data again. 1 is added to the formula as to avoid log(0) scenario. The original column with the name sentiment is dropped and the new column log_sentiment is used for y train. 
 
 ```{python}
 #define y train with log_sentiment to transform sentiment values 
@@ -377,7 +376,7 @@ y_train = (y_train
 
 ```
 
-As log_sentiment has been created, its important to see the logged data and distribution across bins. The log resolves the right skewed data problem and can be observed to be in much closed bin sizes. 
+As log_sentiment has been created, its important to see the logged data and distribution across bins. The log resolves the right skewed data problem and can be observed to be in much closer bin sizes. 
 
 ```{python}
 #plot the historgram for log_sentiment 
