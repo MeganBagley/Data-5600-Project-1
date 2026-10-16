@@ -143,7 +143,7 @@ snow_data = snow_data.with_columns(
     .otherwise(pl.lit("Other"))
     .alias("region")
 )
-```{python}
+
 # Count observations by city/state and sort
 city_counts = snow_data["city"].value_counts().sort("count")
 
@@ -788,7 +788,6 @@ Average snowfall: Interval is between 0% - 0.03% with mean at 0.02%. Each additi
 
 The number of runs is the clear driver of sentiment, as 1% increase in runs accounts for 6.8% increas in sentiment. Snow making and days open show positive trends but are less significant. The resorts should prioritize on increasing the number of runs for their investments. 
 
-
 ```{python}
 
 # Construct confidence interval data frame with percent change
@@ -825,32 +824,73 @@ The other model with region is tested for the results.
 The dataset with model with region is analyzed for the results. 
 ```{python}
 # Model with region
+
+# Drop the east region to use as reference 
 snow_train_3 = (snow_data
   .to_dummies(columns=['region'], drop_first=False)
   .select(pl.exclude('region_East'))
 )
 
+# define the predictors 
 region_predictors = ['snow_making','days_open_last','runs','avgsnow',
                       'region_Midwest','region_Mountain','region_Other','region_West']
 
+#define the X and y 
 X = snow_train_3.select(region_predictors)
 y = snow_train_3.select('sentiment')
 
+# split data into train and test with 80/20 split
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
+# create new list for coloumns to transform in X train and X test 
+log_cols = ['snow_making', 'runs']
+
+# create x train for the model 
+X_train_log = (X_train
+  .with_columns((pl.col(col) + 1).log().alias(f'log_{col}') for col in log_cols)
+  .select(pl.exclude('snow_making', 'runs'))
+)
+
+# create x test for the model and use same log transformations for x test as of x train 
+
+X_test_log = (X_test
+  .with_columns((pl.col(col) + 1).log().alias(f'log_{col}') for col in log_cols)
+  .select(pl.exclude('snow_making', 'runs'))
+)
+
+# create y train with log sentiment 
 y_train_log = y_train.with_columns((pl.col('sentiment') + 1).log().alias('log_sentiment')).select('log_sentiment')
+
+#create y test with log sentiment 
 y_test_log  = y_test.with_columns((pl.col('sentiment') + 1).log().alias('log_sentiment')).select('log_sentiment')
 
-train_01 = pl.concat([y_train_log, X_train], how='horizontal').to_pandas()
+# concatenate the data with X and y train 
+train_01 = pl.concat([y_train_log, X_train_log], how='horizontal').to_pandas()
 
-fit_01 = smf.ols('log_sentiment ~ ' + ' + '.join(region_predictors), data=train_01).fit()
+#define region_predictors with log values 
+region_predictors_log = ['log_snow_making','days_open_last','log_runs','avgsnow',
+                      'region_Midwest','region_Mountain','region_Other','region_West']
 
-pred_01 = fit_01.predict(X_test.to_pandas())
+# define and fit the model 
+fit_01 = smf.ols('log_sentiment ~ ' + ' + '.join(region_predictors_log), data=train_01).fit()
+
+
+# run prediction for the model 
+pred_01 = fit_01.predict(X_test_log.to_pandas())
+
+# calculate the mean squared error 
 mse_01 = mean_squared_error(y_test_log.to_pandas(), pred_01)
+
+# calculate the root mean squared error 
 rmse_01 = root_mean_squared_error(y_test_log.to_pandas(), pred_01)
 
+# print out model result summary 
 print(fit_01.summary())
+
+#print out the mean error 
 print("With region MSE:", mse_01)
+
+#print out the root mean error 
 print("With region RMSE:", rmse_01)
 
 # residuals for existing diagnostics
