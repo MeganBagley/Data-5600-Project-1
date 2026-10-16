@@ -566,7 +566,7 @@ fr_fit_01.summary()
 
 ```
 
-Bayesian Model
+We now fit Bayesian Model to our data 
 
 ```{python}
 # Specify a Bayesian linear regression
@@ -586,10 +586,14 @@ ba_model.set_priors(priors = priors_dict)
 ba_model
 ```
 
+Fitting the linear regression for our bayesian model 
+
 ```{python}
 # Fit a Bayesian linear regression
 ba_fit = ba_model.fit(cores = 1) # used cores = 1 as the code got stuck on 4 cores 
 ```
+
+Summarize the bayesian model output 
 
 ```{python}
 az.summary(ba_fit, ci_kind = 'hdi', ci_prob = 0.95)
