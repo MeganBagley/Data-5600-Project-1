@@ -178,7 +178,7 @@ region_counts = snow_data["region"].value_counts().sort("count", descending=True
 
 By creating a Region column, we can more accurately measure location, as each section has a greater number of observations to pull from. Having more columns than rows in a dataset can disrupt a linear regression.
 
-
+```{python}
 #drop city column
 snow_data = snow_data.drop("city")
 
@@ -189,6 +189,7 @@ snow_data = snow_data.drop_nans(['snow_making','days_open_last','runs','avgsnow'
 # see the snow_data dataset cleaned data and count the region entries 
 snow_data.head()
 snow_data["region"].value_counts().sort("count")
+
 ```
 
 ## Exploring data with visualizations
