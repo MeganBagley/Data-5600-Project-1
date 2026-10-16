@@ -878,11 +878,13 @@ fit_01 = smf.ols('log_sentiment ~ ' + ' + '.join(region_predictors_log), data=tr
 # run prediction for the model 
 pred_01 = fit_01.predict(X_test_log.to_pandas())
 
+
 # calculate the mean squared error 
 mse_01 = mean_squared_error(y_test_log.to_pandas(), pred_01)
 
 # calculate the root mean squared error 
 rmse_01 = root_mean_squared_error(y_test_log.to_pandas(), pred_01)
+
 
 # print out model result summary 
 print(fit_01.summary())
