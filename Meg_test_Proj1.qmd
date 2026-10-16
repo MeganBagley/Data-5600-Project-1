@@ -413,6 +413,7 @@ We need to transform from the log scale. This block does this part.
 
 the values are stored in the coef_table variable which gives parameters, log co efficient values and p value of each predictor. another column called percent_change is added to get the exact percentage change values for each predictor. 
 As we have gotten the log coefficients, p values and percentage changes on this data after verifying all assumptions, we can now run analysis for our original data set 
+
 ```{python}
 # retrieve untransformed params
 coef_table = pl.DataFrame({
@@ -453,6 +454,7 @@ snow_ols.head()
 ```
 
 We now define and x and y values for our model and do the 80/20 split for our model . The sentiment has been excluded from X as it is the outcome. X includes all the other pre defined predictors. Test and train data is in 80/20 split. 
+
 ```{python}
 # Specify the outcome
 X = snow_ols.select(pl.exclude('sentiment'))
@@ -547,7 +549,7 @@ pl.DataFrame({
 }).filter(pl.col('term') != 'const')
 ```
 
- We now fit our Frequentist Model to the data set using the snow_train_2 variable 
+ We now fit our Frequentist Model to the data set using the snow_train_2 variable and define fr_fit_01 for our model 
 
 ```{python}
 # Combine the outcome and predictors into one training frame
@@ -555,12 +557,12 @@ snow_train_2 = pl.concat([y_train, pl.from_pandas(X_train.drop(columns = 'const'
 
 predictors = ['days_open_last', 'log_runs', 'avgsnow', 'log_snow_making']
 
-fr_fit = smf.ols(
+fr_fit_01 = smf.ols(
   'sentiment ~ ' + ' + '.join(predictors),
   data = snow_train_2
 ).fit()
 
-fr_fit.summary()
+fr_fit_01.summary()
 
 ```
 
