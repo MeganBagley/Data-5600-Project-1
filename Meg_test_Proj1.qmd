@@ -740,6 +740,8 @@ df_01 = pl.DataFrame({
 The other model with region is tested for the results. 
 
 ### Model with region
+
+The dataset with model with region is analyzed for the results. 
 ```{python}
 # Model with region
 snow_train_3 = (snow_data
