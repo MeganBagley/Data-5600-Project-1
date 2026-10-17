@@ -830,9 +830,6 @@ F-statistic : small but it is indictive of predictors having significance
 Mean squared error : 0.005447742344244023
 Root mean squared error : 0.07380882294308738
 
-### Interpretation of Results
-The mean squarted error and root mean squared errors have less than 0.1% difference between with region and without region models. However, R sqaured adjusted decreased for with region to 0.427 as compared to without region which is at 0.432. Since without region model has higher adjusted R squared, that model is selected to run our analysis. 
-R square increased by increasing the prediction region for with region model, but that is an expected result. 
 ```{python}
 # Model with region
 
@@ -915,6 +912,11 @@ snow_train = (pl.from_pandas(train_01)
 
 ```
 
+### Interpretation of Results
+The mean squarted error and root mean squared errors have less than 0.1% difference between with region and without region models. However, R sqaured adjusted decreased for with region to 0.427 as compared to without region which is at 0.432. Since without region model has higher adjusted R squared, that model is selected to run our analysis. 
+R square increased by increasing the prediction region for with region model, but that is an expected result. 
+
+
 The interval estimates are visualized for with region model and as observed in the chart, the runs is still the most significant predictor. 
 
 ```{python}
@@ -956,21 +958,38 @@ The lower abd upper bounds for regions are not used in the analysis, however the
 
 ## Drop Region and run full model
 ```{python}
+#only select the relevant predictors and 
+full_data = snow_data.select('sentiment', 'snow_making','days_open_last','runs','avgsnow')
 
+# define coloumns to have log transformations 
 log_columns = ['snow_making', 'runs', 'sentiment']
 
-#.with_columns((pl.col(col) + 1).log().alias(f'log_{col}') for col in log_cols)
+#define full data with log transformations and drop the original columns 
+full_data = (full_data.with_columns((pl.col(column) + 1).log().alias(f'log_{column}') for column in log_columns)
+.select(pl.exclude('sentiment','snow_making', 'runs'))
+.to_pandas()
+)
 
-full_data = (snow_data
-  .to_dummies(columns=['region'], drop_first=False)
-  .select(pl.exclude('region_East'))
-  .with_columns((pl.col(column) + 1).log().alias(f'log_{column}') for column in log_columns)
-  .select(pl.exclude('snow_making','runs','sentiment'))
-).to_pandas()
+# define the predictors
+region_predictors_log2 = ['days_open_last', 'avgsnow', 'log_snow_making', 'log_runs']
 
+# model fit and print summary 
+fr_fit = smf.ols('log_sentiment ~ ' + ' + '.join(region_predictors_log2), data=full_data).fit()
 
-fr_fit = smf.ols('log_sentiment ~ ' + ' + '.join(region_predictors_log), data=full_data).fit()
+#use the trained model to predict the outcome 
+pred_0 = fr_fit.predict(full_data)
+
+# show the mean squared error for the model
+mse_0 = mean_squared_error(full_data['log_sentiment'], pred_0)
+
+# show the root mean squared error for the model
+rmse_0 = root_mean_squared_error(full_data['log_sentiment'], pred_0)
+
+#print out summary results and error values 
 print(fr_fit.summary())
+print("Without region MSE:", mse_0)
+print("Without region RMSE:", rmse_0)
+
 
 fr_ci = fr_fit.conf_int().rename_axis('parameter').reset_index()
 fr_ci.columns = ['parameter', 'lower', 'upper']
@@ -984,38 +1003,33 @@ fr_ci.columns = ['parameter', 'lower', 'upper']
 ```
 
 ```{python}
-# make predictions with intervals
+-# make predictions with intervals
 X_new = pl.DataFrame({
-    'snow_making':     [100, 500, 100, 500],
-     
+    'log_snow_making':     [100, 500, 100, 500],
+    
      # guage differences in snow making
     'days_open_last':  [120, 120, 120, 120], 
    
     # kept constant, as its something difficult for resorts to fully control
-    'runs':            [30, 10, 10, 30], 
+    'log_runs':            [30, 10, 10, 30], 
    
     # to guage the effect on runs, and if resorts should build more
-    'avgsnow':         [200, 200, 200, 200],
-    'region_Midwest':  [0, 0, 0, 0],
-    'region_Mountain': [1, 1, 0, 0], 
-    'region_Other':    [0, 0, 0, 0],
-    'region_West':     [0, 0, 1, 1] 
-    
-    #use the 2 biggest regions to guage profit based on region
-})
-
+    'avgsnow':         [200, 200, 200, 200]
+  })
+ 
 X_new = X_new.with_columns(log_pred = pl.Series(fr_fit.predict(X_new.to_pandas())))
 X_new = X_new.with_columns(pred_sentiment = (np.exp(pl.col('log_pred')) - 1))
 X_new
 
-print(fr_fit.get_prediction(X_new.to_pandas()).summary_frame(alpha=0.05))
+#Confidence and prediction intervals 
+print(fr_fit.get_prediction(X_new).summary_frame(alpha=0.05))
 ```
 
 
 
 ## Bayesian model + posterior predictive check
 ```{python}
-ba_model = bmb.Model('log_sentiment ~ ' + ' + '.join(region_predictors), data=full_data)
+ba_model = bmb.Model('log_sentiment ~ ' + ' + '.join(region_predictors_log2), data=full_data)
 
 priors_dict = {
   'Intercept': bmb.Prior('Uniform', lower=-100, upper=100),
@@ -1023,7 +1037,7 @@ priors_dict = {
   'sigma': bmb.Prior('Exponential', lam=1)
 }
 ba_model.set_priors(priors=priors_dict)
-ba_fit = ba_model.fit(cores=1)
+ba_fit = ba_model.fit(cores=1) # used single core not to hang on windows 
 az.summary(ba_fit, ci_kind='hdi', ci_prob=0.95)
 
 ba_model.predict(ba_fit, kind='response')
@@ -1044,4 +1058,4 @@ ppc_data = pl.DataFrame({
 
 # Interpretation of Predicted vs Real Outcomes
 
-The predicted outcomes show a large range, showing signs of potential under fitting. our prediction falls within the deviation, showing the parameters selected align with the assumptions needed for the regression. There could be more work done to fit this model.
+The predicted outcomes show exactly matching the data, which means that the model is well trained and can give accurate predictions. The model without region is well suited to run predictions.  
