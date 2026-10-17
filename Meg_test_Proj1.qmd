@@ -915,20 +915,61 @@ snow_train = (pl.from_pandas(train_01)
 
 ```
 
+The interval estimates are visualized for with region model and as observed in the chart, the runs is still the most significant predictor. 
+
+```{python}
+# Construct confidence interval data frame
+df_01 = pl.DataFrame({
+  'term': fit_01.conf_int().index.tolist(),
+  'coef': fit_01.params.tolist(),
+  'conf_low': (fit_01
+    .conf_int().loc[:, 0].tolist()),
+  'conf_high': (fit_01
+    .conf_int().loc[:, 1].tolist())
+}).filter(pl.col('term')!= 'Intercept')
+
+# Plot the confidence intervals
+(ggplot(df_01, aes(x = 'coef', y = 'term'))
+  + geom_point()
+  + geom_errorbarh(
+    aes(xmin = 'conf_low', xmax = 'conf_high'), 
+    height = 0.2
+  )
+  + geom_vline(
+    xintercept = 0, 
+    color = 'red', linetype = '--'
+  )
+  + labs(x = '', y = '')
+)
+```
+
 # Predict 
 
-The model without region is finalized, and this code block is used to predict results for the model. 
+The model without region is finalized, and this code block is used to predict results for the model using complete dataset. Following are the results after the model fit. 
 
-## Drop Region run full model
+R - Squared : 0.482
+R - Squared Adjusted : 0.464
+Prob(F-Statistic): The value is minute but above zero indicitive of predictors being significant. 
+
+The lower abd upper bounds for regions are not used in the analysis, however the regions are part of complete dataset, so they exist in the parameter columns.  
+
+
+## Drop Region and run full model
 ```{python}
+
+log_columns = ['snow_making', 'runs', 'sentiment']
+
+#.with_columns((pl.col(col) + 1).log().alias(f'log_{col}') for col in log_cols)
 
 full_data = (snow_data
   .to_dummies(columns=['region'], drop_first=False)
   .select(pl.exclude('region_East'))
-  .with_columns((pl.col('sentiment') + 1).log().alias('log_sentiment'))
+  .with_columns((pl.col(column) + 1).log().alias(f'log_{column}') for column in log_columns)
+  .select(pl.exclude('snow_making','runs','sentiment'))
 ).to_pandas()
 
-fr_fit = smf.ols('log_sentiment ~ ' + ' + '.join(region_predictors), data=full_data).fit()
+
+fr_fit = smf.ols('log_sentiment ~ ' + ' + '.join(region_predictors_log), data=full_data).fit()
 print(fr_fit.summary())
 
 fr_ci = fr_fit.conf_int().rename_axis('parameter').reset_index()
