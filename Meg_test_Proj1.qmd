@@ -7,7 +7,7 @@ jupyter: python3
 ---
 # Executive Summary
 
-We analyzed guest sentiment (1-7 scale from OnTheSnow) on four resort attributes. Those being snow making acreage, the number of days open, number of runs, and average natural snowfall across U.S. resorts (OnTheSnow.com, 2019 season). This report tested region as a predictor. Detailed in the report, it was dropped, as it provided no significance to the model. In turn, the model was ran and determined the number of runs, with 95% confidence holding all other variables constant, increases +0.003 to +0.007 sentiment points per run. The amount of days open per season is smaller and less certain, with 0 to 0.005 pts increase per day, and snow making is  the weakest, but still significant. Snow making efforts deliver, with 95% confidence holding all other variables equal, 0 to +0.002 points increase per 1% increase coverage. This analysis determines that capital is better spent on terrain than snow making, and that snow making efforts should only be invested in when supporting terrain growth. 
+We analyzed guest sentiment (1-7 scale from OnTheSnow dataset) on four resort attributes. Those being snow making acreage, the number of days open, number of runs, and average natural snowfall across U.S. resorts (OnTheSnow.com, 2019 season). This report tested region as a predictor. Detailed in the report, it was dropped, as it provided no significance to the model. In turn, the model was ran and determined the number of runs, with 95% confidence holding all other variables constant, increases +6% sentiment points per 1% increase in run. The number of runs is the most important predictor in our analysis. The second most improtant predictor is snow making with corresponds to 1.25% increase in sentiment with 1% increase in snow making. The other predictors are less significant. This analysis determines that capital is better spent on terrain than snow making, and that snow making efforts should only be invested in when supporting terrain growth. 
 
 # Plan 
 ## Business Objective
@@ -107,6 +107,7 @@ snow_data = (snow_data
 ```
 
 The regions are created for each state to combine different states & cities.  
+
 ```{python}
 #create a region. See visualizations below. 
 snow_data = snow_data.with_columns(
