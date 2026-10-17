@@ -916,6 +916,11 @@ snow_train = (pl.from_pandas(train_01)
 The mean squarted error and root mean squared errors have less than 0.1% difference between with region and without region models. However, R sqaured adjusted decreased for with region to 0.427 as compared to without region which is at 0.432. Since without region model has higher adjusted R squared, that model is selected to run our analysis. 
 R square increased by increasing the prediction region for with region model, but that is an expected result. 
 
+| Model          | R² Adj | MSE    | RMSE   |
+|----------------|--------|--------|--------|
+| Without region | 0.432  | 0.0055 | 0.0741 |
+| With region    | 0.427  | 0.0054 | 0.0738 |
+
 
 The interval estimates are visualized for with region model and as observed in the chart, the runs is still the most significant predictor. 
 
@@ -1003,15 +1008,15 @@ fr_ci.columns = ['parameter', 'lower', 'upper']
 ```
 
 ```{python}
--# make predictions with intervals
+# make predictions with intervals
 X_new = pl.DataFrame({
-    'log_snow_making':     [100, 500, 100, 500],
+    'log_snow_making':     [np.log(100), np.log(500), np.log(100), np.log(500)],
     
      # guage differences in snow making
     'days_open_last':  [120, 120, 120, 120], 
    
     # kept constant, as its something difficult for resorts to fully control
-    'log_runs':            [30, 10, 10, 30], 
+    'log_runs':            [np.log(30), np.log(10), np.log(10), np.log(30)], 
    
     # to guage the effect on runs, and if resorts should build more
     'avgsnow':         [200, 200, 200, 200]
@@ -1058,4 +1063,12 @@ ppc_data = pl.DataFrame({
 
 # Interpretation of Predicted vs Real Outcomes
 
-The predicted outcomes show exactly matching the data, which means that the model is well trained and can give accurate predictions. The model without region is well suited to run predictions.  
+The predicted outcomes following the data, which means that the model is well trained and can give accurate predictions. The model without region is well suited to run predictions.
+
+## Conclusion 
+Although the dataset is from 2019, OnTheSnow dataset provides a good basis for our analysis for 300+ US ski resorts. Weather patterns have changed, and due to less snow each year, ski resorts have to come up with ways to improve their customer expereince. Sentiment provides a good outcome metric to measure and is provided using data mining techniques in another project and matched against US ski resorts. The predictors selected were runs, snowfall, snow making and days open last year. Runs is the most significant predictor. Geographical regions did not impact on the model and model without regions was selected as it was more accurate. After predicting, it is observed that the model fits the actual values well and can be used to predict using other data.  
+
+
+## Way Forward 
+
+The number of runs is the most important factor found in the predictors for predicting the outcome sentiment. Dataet contains more predictors like run categories, run lengths, their difficulty and their height data. The way forwrad is to focus on the runs and their corresponding predictors to identify which runs are the most significant to increase sentiment value. 
